@@ -90,7 +90,10 @@ const sendERC20 = async() => {
 
     console.log("ERC20::",token_amount.toString());
 
-    let a = await erc20.transfer('0x1a7e8147208a69cf0753816AEe4BDA54b6BC41B8', 100);
+    const erc20_transfer = await erc20.transfer('0x1a7e8147208a69cf0753816AEe4BDA54b6BC41B8', 100);
+
+    console.log("TRANSFER :: ", erc20_transfer)
+
 }
 
 sendERC20()
