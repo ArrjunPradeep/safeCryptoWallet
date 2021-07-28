@@ -1,5 +1,5 @@
 var ethers = require("ethers");
-var config = require('../config');
+var config = require('../config/config');
 
 // WEBSOCKET URL
 var url = "wss://ropsten.infura.io/ws/v3/a478bf40f7b24494b30b082c0d225104";

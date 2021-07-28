@@ -1,11 +1,11 @@
 module.exports = {
     
     db: {
-        host: "5.189.141.68",
+        host: "localhost",
         port: "27017",
-        userName: "shamlaTech",
-        password: "ShamlaSts019",
-        dbName: "purecoin"
+        userName: "bobe",
+        password: "bobe369",
+        dbName: "bobecoin"
     },
 
     receiveCron: { 
