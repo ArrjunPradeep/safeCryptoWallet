@@ -8,6 +8,10 @@ module.exports = {
         dbName: "bobecoin"
     },
 
+    token: {
+        secret: "password"
+    },
+
     receiveCron: { 
         initialBlock: '0' //0
     },       
