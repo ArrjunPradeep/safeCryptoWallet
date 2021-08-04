@@ -14,20 +14,15 @@ const schema = new mongoose.Schema({
 			default: '0',
 		},
 		address: String,
-	},
-	bobe: {
-		balance: {
-			type: String,
-			default: '0',
-		},
-		address: String
+		fee: Number
 	},
 	usdt: {
 		balance: {
 			type: String,
 			default: '0',
 		},
-		address: String
+		address: String,
+		fee: Number
 	}
 });
 

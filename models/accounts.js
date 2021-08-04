@@ -1,10 +1,16 @@
 var mongoose = require('mongoose');
 
 module.exports = mongoose.model('accounts', {
-    email: String,
+    email: {
+        type: String,
+        unique: true
+    },
     password: String,
     id: String,
-    ref: Number,
+    ref: {
+        type: Number,
+        unique: true
+    },
     auth2: {
         type: Boolean,
         default: false
