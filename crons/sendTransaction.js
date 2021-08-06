@@ -1,5 +1,5 @@
 var ethers = require("ethers");
-var wallet_library = require('../lib/wallet');
+var wallet_library = require('../lib/blockchain/wallet');
 var contract_abi = require('../contract/abi').abi;
 let provider;
 

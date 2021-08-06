@@ -8,6 +8,7 @@ const bcrypt_lib = require("../lib/server/bcrypt");
 const wallet_library = require("../lib/blockchain/wallet");
 const accountsModel = require("../models/accounts");
 const walletsModel = require("../models/wallets");
+const transactionsModel = require("../models/transactions");
 var provider;
 
 // - api key only
@@ -66,31 +67,69 @@ router.get("/createWallet", async (req, res, next) => {
   }
 });
 
-router.use(jwt_lib.router);
+// MIDDLEWARE TOKEN AUTHENTICATION
+// router.use(jwt_lib.router);
 
 router.get("/send", async (req, res, next) => {
   try {
-    let { crypto, receiver, amount } = req.body;
+
+    let { email, crypto, receiver, amount } = req.body;
+
+    let walletInfo = await walletsModel.findOne({email:email}).lean().exec();
+
+    let walletAddress = walletInfo[crypto.toLowerCase()].address;
+
+    console.log("walel",walletAddress,crypto)
 
     // let balance = await ethereum_lib.checkBalance( crypto, address);
-    let balance = await ethereum_lib.checkBalance(
+    let checkBalance = await ethereum_lib.checkBalance(
       crypto,
-      receiver
+      walletAddress,
+      receiver,
+      amount
     );
 
-    if (amount > balance || amount == "0") {
-      return res.status(422).send({
-        status: false,
-        message: "Insufficient Balance",
+    if(checkBalance) {
+     
+      await transactionsModel.create({
+        email: email,
+        ref: walletInfo.id,
+        from: email,
+        to: receiver,
+        source: String,
+        target: String,
+        sourceAmount: String,
+        targetAmount:String,
+        type: String,
+        value: String,
+        currency: String,
+        hash: String,
+        status: String,
+        error: String,
+        reason: String,
+        fee: Number,
+        timestamp: String(new Date().getTime())
+      })
+
+      return res.status(200).send({
+        status: true,
+        message: "Transaction Initiated"
       });
+
+    }
+    else {
+
+      return res.status(400).send({
+        status: false,
+        message: "Insufficient Balance"
+      });
+
     }
 
-    return res.status(200).send({
-      status: true,
-      message: "Transaction Initiated",
-    });
-
   } catch (error) {
+
+    console.log("ERROR::SEND::",error);
+
     return res.status(500).send({
       message: "Internal Server Error",
       status: false,
@@ -146,7 +185,7 @@ const createWallet = async (email, userData) => {
 
     await walletsModel.create({
       email: email,
-      id: email,
+      id: ref,
       eth: {
         balance: block_balance.eth,
         address: wallet.eth,
@@ -175,5 +214,36 @@ const createWallet = async (email, userData) => {
 
   }
 };
+
+// CHECK IS EXTERNAL ADDRESS
+const isExternalAddress = async(crypto, address) => {
+
+  try {
+    
+    let flag = true;
+
+		let account = await walletsModel.find({}).lean().exec();
+
+		await account.forEach(async result => {
+      console.log("wetr",result.eth.address)
+			if (result.wallets[`${crypto.toLowerCase()}.address`] == address) {
+        
+        flag = false
+        console.log("FLAG::",flag);
+
+			}
+    });
+    
+    return flag;
+
+  } catch (error) {
+    
+    console.log("ERROR::",error);
+
+  }
+
+} 
+
+isExternalAddress("ETH","0xEc51E8E9ac545281794AF5488b348CA9b62b1059");
 
 module.exports = router;
