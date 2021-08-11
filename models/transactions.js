@@ -17,7 +17,13 @@ const schema = new mongoose.Schema({
     status: String,
     error: String,
     reason: String,
-    fee: Number
+    fee: Number,
+    gasLimit: Object,
+    gasPrice: Object,
+    timestamp: {
+        type: String,
+        default: new Date().getTime()
+    }
 },{ collection: 'transactions'})
 
 schema.plugin(mongoosePaginate);

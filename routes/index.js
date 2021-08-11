@@ -9,6 +9,7 @@ const wallet_library = require("../lib/blockchain/wallet");
 const accountsModel = require("../models/accounts");
 const walletsModel = require("../models/wallets");
 const transactionsModel = require("../models/transactions");
+const constants = require("../constants/constants");
 var provider;
 
 // - api key only
@@ -77,37 +78,42 @@ router.get("/send", async (req, res, next) => {
 
     let walletInfo = await walletsModel.findOne({email:email}).lean().exec();
 
-    let walletAddress = walletInfo[crypto.toLowerCase()].address;
+    let address = walletInfo[crypto.toLowerCase()].address;
 
-    console.log("walel",walletAddress,crypto)
+    let balance = walletInfo[crypto.toLowerCase()].balance;
+
+    console.log("walel",address,crypto,balance)
 
     // let balance = await ethereum_lib.checkBalance( crypto, address);
     let checkBalance = await ethereum_lib.checkBalance(
       crypto,
-      walletAddress,
+      balance,
+      address,
       receiver,
       amount
     );
+    
+    console.log("asfd",checkBalance)
 
-    if(checkBalance) {
+    if(checkBalance.status) {
      
       await transactionsModel.create({
         email: email,
         ref: walletInfo.id,
         from: email,
         to: receiver,
-        source: String,
-        target: String,
-        sourceAmount: String,
-        targetAmount:String,
-        type: String,
-        value: String,
-        currency: String,
-        hash: String,
-        status: String,
-        error: String,
-        reason: String,
-        fee: Number,
+        source: crypto.toLowerCase(),
+        target: crypto.toLowerCase(),
+        sourceAmount: amount,
+        targetAmount:amount,
+        type: "send",
+        currency: crypto.toLowerCase(),
+        hash: '',
+        status: constants.TXNS.IN_QUEUE,
+        error: 'nil',
+        gasLimit: checkBalance.gasLimit,
+        gasPrice: checkBalance.gasPrice,
+        fee: checkBalance.fee,
         timestamp: String(new Date().getTime())
       })
 
@@ -244,6 +250,6 @@ const isExternalAddress = async(crypto, address) => {
 
 } 
 
-isExternalAddress("ETH","0xEc51E8E9ac545281794AF5488b348CA9b62b1059");
+// isExternalAddress("ETH","0xEc51E8E9ac545281794AF5488b348CA9b62b1059");
 
 module.exports = router;

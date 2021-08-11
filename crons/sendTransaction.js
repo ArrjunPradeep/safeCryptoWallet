@@ -2,6 +2,11 @@ var ethers = require("ethers");
 var wallet_library = require('../lib/blockchain/wallet');
 var contract_abi = require('../contract/abi').abi;
 let provider;
+const transactionsModel = require("../models/transactions");
+const walletsModel = require("../models/wallets");
+const accountsModel = require("../models/accounts");
+const settingsModel = require("../models/settings");
+const constants = require("../constants/constants");
 
 const initializeWeb3 = async() => {
     try {
@@ -16,8 +21,6 @@ const initializeWeb3 = async() => {
     }
 }
 
-// initializeWeb3()
-
 const getWallet = async(ref) => {
 
     let privateKey = await (await wallet_library.generateEthereumAddress(ref,true)).privateKey;
@@ -25,22 +28,61 @@ const getWallet = async(ref) => {
     return privateKey;
 
 }
-// getWallet(2)
-const sendEth = async() => {
+
+const initiateTransaction = async() => {
+
+    try {
+        
+        let transactions = await transactionsModel.find({status: constants.TXNS.IN_QUEUE}).lean().exec();
+        console.log("::TXNS::",transactions.length);
+
+        if(transactions.length > 0) {
+            
+            transactions.forEach(async txn => {
+                
+
+
+                switch (txn.source) {
+    
+                    case "eth": console.log("::ETH::");
+                                sendETH(txn);
+                                break;  
+    
+                    default: console.log("::ERC20::");
+                             sendERC20(txn);
+                             break;
+                }
+
+            })
+
+        }
+
+    } catch (error) {
+        
+        console.log("INITIATE_TXN::ERROR::",error);
+        return;
+
+    }
+
+}
+
+const sendETH = async(txn) => {
 
     try {
     
         await initializeWeb3();
 
-        let wallet = new ethers.Wallet(await getWallet(1),provider);
+        let account = await accountsModel.findOne({email:txn.email}).lean().exec();
+
+        let wallet = new ethers.Wallet(await getWallet(account.ref),provider);
         console.log("WALLET ::",wallet.address);
 
         let walletSigner = wallet.connect(provider);
         console.log("SIGNER ::",walletSigner.address);
 
         let gasLimit = await provider.estimateGas({
-            to: "0x1a7e8147208a69cf0753816AEe4BDA54b6BC41B8",
-            value: ethers.utils.parseEther("0.01")
+            to: txn.to,
+            value: ethers.utils.parseEther(txn.sourceAmount)
           });
         
         console.log("GAS LIMIT :: ",gasLimit);
@@ -48,8 +90,8 @@ const sendEth = async() => {
         const tx = 
         {
             from : wallet.address,
-            to : '0x1a7e8147208a69cf0753816AEe4BDA54b6BC41B8',
-            value : ethers.utils.parseEther('0.01'),
+            to : txn.to,
+            value : ethers.utils.parseEther(txn.sourceAmount),
             nonce : provider.getTransactionCount(wallet.address, 'latest'),
             gasLimit : gasLimit, //provider.estimateGas(), //ethers.utils.hexlify('100000'), // 100000
             gasPrice : provider.getGasPrice()
@@ -57,7 +99,7 @@ const sendEth = async() => {
 
 
 
-        walletSigner.sendTransaction(tx).then((transaction) => {
+        await walletSigner.sendTransaction(tx).then((transaction) => {
             console.log("TRANSACTION HASH :: ",transaction.hash);
         });
         
@@ -68,7 +110,7 @@ const sendEth = async() => {
 
 }
 
-const sendERC20 = async() => {
+const sendERC20 = async(txn) => {
 
     await initializeWeb3();
 
@@ -96,5 +138,9 @@ const sendERC20 = async() => {
 
 }
 
-sendERC20()
+// sendERC20()
 // sendEth()
+
+module.exports = {
+    initiateTransaction
+}
