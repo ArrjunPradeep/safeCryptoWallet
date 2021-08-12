@@ -14,7 +14,11 @@ module.exports = {
 
     receiveCron: { 
         initialBlock: '0' //0
-    },       
+    }, 
+    
+    etherscan : {
+        apiKey: 'IP3C2JRFFU14ER43G1N5BJXC6HI8BWPT9F'
+    },
                          
     wallet: {
         mnemonics: "observe room column stick carpet agree flavor safe decline trigger dial business",

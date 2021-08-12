@@ -80,12 +80,12 @@ const sendETH = async(txn) => {
         let walletSigner = wallet.connect(provider);
         console.log("SIGNER ::",walletSigner.address);
 
-        let gasLimit = await provider.estimateGas({
-            to: txn.to,
-            value: ethers.utils.parseEther(txn.sourceAmount)
-          });
+        // let gasLimit = await provider.estimateGas({
+        //     to: txn.to,
+        //     value: ethers.utils.parseEther(txn.sourceAmount)
+        //   });
         
-        console.log("GAS LIMIT :: ",gasLimit);
+        // console.log("GAS LIMIT :: ",gasLimit);
 
         const tx = 
         {
@@ -93,18 +93,28 @@ const sendETH = async(txn) => {
             to : txn.to,
             value : ethers.utils.parseEther(txn.sourceAmount),
             nonce : provider.getTransactionCount(wallet.address, 'latest'),
-            gasLimit : gasLimit, //provider.estimateGas(), //ethers.utils.hexlify('100000'), // 100000
-            gasPrice : provider.getGasPrice()
+            gasLimit : txn.gasLimit, //provider.estimateGas(), //ethers.utils.hexlify('100000'), // 100000
+            gasPrice : txn.gasPrice //provider.getGasPrice()
         }        
 
 
 
-        await walletSigner.sendTransaction(tx).then((transaction) => {
+        await walletSigner.sendTransaction(tx).then( async (transaction) => {
             console.log("TRANSACTION HASH :: ",transaction.hash);
+
+            let status = "pending";
+        
+            await updateTxnStatus(txn._id, txn.from, status , txn.hash, '');
+        
         });
         
     } catch (error) {
         console.log("SEND ETH :: ", error);
+
+        let status = "failed";
+
+        await updateTxnStatus(txn._id, txn.from, status , txn.hash, error.message);
+
         return;
     }
 
@@ -138,9 +148,47 @@ const sendERC20 = async(txn) => {
 
 }
 
+const updateTxnStatus = async(id, from, status, hash, message) => {
+
+    try {
+        
+        await transactionsModel.updateOne({
+            _id:id
+        },
+        {
+            $set:{
+                from: from,
+                txHash: hash,
+                status: status,
+                reason: message
+            }
+        },
+        {
+            upsert:true
+        })
+
+    } catch (error) {
+        
+        console.log("::UPDATE_TXN::ERROR::",error);
+        return;
+
+    }
+
+}
+
+
+
 // sendERC20()
 // sendEth()
 
 module.exports = {
     initiateTransaction
 }
+
+//  catch (error) {
+//     console.log("ERROR:", error)
+//     res.status(500).send({
+//       status: "Fail",
+//       error: JSON.parse(CircularJSON.stringify(error.response.data.message))
+//     })
+//   }

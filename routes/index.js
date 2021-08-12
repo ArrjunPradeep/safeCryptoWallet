@@ -5,10 +5,10 @@ const ethers = require("ethers");
 const jwt_lib = require("../lib/server/jwt");
 const cache_lib = require("../lib/server/cache");
 const bcrypt_lib = require("../lib/server/bcrypt");
-const wallet_library = require("../lib/blockchain/wallet");
 const accountsModel = require("../models/accounts");
 const walletsModel = require("../models/wallets");
 const transactionsModel = require("../models/transactions");
+const settingsModel = require("../models/settings");
 const constants = require("../constants/constants");
 var provider;
 
@@ -17,6 +17,7 @@ var provider;
 // ACTIVATE ACCOUNT
 router.post("/activateAccount", async (req, res, next) => {
   try {
+
     let token = await jwt_lib.generateToken();
 
     return res.status(200).send({
@@ -142,6 +143,26 @@ router.get("/send", async (req, res, next) => {
     });
   }
 });
+
+// SET DIFFERENT TRANSACTION FEE 
+router.get("/transactionFee", async(req,res) => {
+
+  try {
+    
+
+
+  } catch (error) {
+    
+    console.log("::TRANSACTION FEE::ERROR::",error);
+    return res.status(500).send({
+      status: false,
+      message: "Internal Server Error"
+    })
+
+  }
+
+})
+
 
 // CREATE CRYPTO ADDRESSESS FOR NEW USERS
 const createWallet = async (email, userData) => {
