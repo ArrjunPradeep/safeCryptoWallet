@@ -87,6 +87,7 @@ router.get("/send", async (req, res, next) => {
 
     // let balance = await ethereum_lib.checkBalance( crypto, address);
     let checkBalance = await ethereum_lib.checkBalance(
+      email,
       crypto,
       balance,
       address,

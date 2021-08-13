@@ -104,7 +104,7 @@ const sendETH = async(txn) => {
 
             let status = "pending";
         
-            await updateTxnStatus(txn._id, txn.from, status , txn.hash, '');
+            await updateTxnStatus(txn._id, txn.from, status , transaction.hash, '');
         
         });
         
@@ -124,27 +124,37 @@ const sendERC20 = async(txn) => {
 
     await initializeWeb3();
 
-    let wallet = new ethers.Wallet(await getWallet(1),provider);
+    let account = await accountsModel.findOne({email:txn.email}).lean().exec();
+
+    let settings = await settingsModel.findOne({}).lean().exec();
+
+    let wallet = new ethers.Wallet(await getWallet(account.ref),provider);
     console.log("WALLET ::",wallet.address);
 
     let walletSigner = wallet.connect(provider);
     console.log("SIGNER ::",walletSigner.address);
 
-    let contractAddress = '0x75A471613aC0B0Ed0fCe30FdD45a649eE4542be5';
+    let contractAddress = settings.contract[`${(txn.source).toUpperCase()}`];
 
-    const erc20 = new ethers.Contract(contractAddress, contract_abi, walletSigner);
+    const contract = new ethers.Contract(contractAddress, contract_abi, walletSigner);
 
-    const erc20_balance = (await erc20.balanceOf(wallet.address)).toString();
+    // const contract_balance = (await erc20.balanceOf(wallet.address)).toString();
 
-    const erc20_decimal = await erc20.decimals();
+    const contract_decimal = await contract.decimals();
     
-    const token_amount = await ethers.utils.parseUnits('1', 2);
+    let token_amount = await ethers.utils.parseUnits('2', contract_decimal);
 
     console.log("ERC20::",token_amount.toString());
 
-    const erc20_transfer = await erc20.transfer('0x1a7e8147208a69cf0753816AEe4BDA54b6BC41B8', 100);
+    await contract.transfer(txn.to, token_amount).then(async(transaction) => {
+        
+        console.log("TRANSACTION HASH :: ",transaction.hash);
 
-    console.log("TRANSFER :: ", erc20_transfer)
+        let status = "pending";
+    
+        await updateTxnStatus(txn._id, txn.from, status , transaction.hash, '');
+    
+    })
 
 }
 
@@ -175,8 +185,6 @@ const updateTxnStatus = async(id, from, status, hash, message) => {
     }
 
 }
-
-
 
 // sendERC20()
 // sendEth()
