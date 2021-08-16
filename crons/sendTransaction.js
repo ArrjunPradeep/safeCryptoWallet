@@ -2,6 +2,7 @@ var ethers = require("ethers");
 var wallet_library = require('../lib/blockchain/wallet');
 var contract_abi = require('../contract/abi').abi;
 let provider;
+const config = require("../config/config");
 const transactionsModel = require("../models/transactions");
 const walletsModel = require("../models/wallets");
 const accountsModel = require("../models/accounts");
@@ -11,7 +12,7 @@ const constants = require("../constants/constants");
 const initializeWeb3 = async() => {
     try {
        
-        var url = 'https://ropsten.infura.io/v3/a478bf40f7b24494b30b082c0d225104';
+        var url = config.wallet.provider;
         provider = new ethers.providers.JsonRpcProvider(url);
         // console.log("PROVIDER::",provider);
 
@@ -109,11 +110,12 @@ const sendETH = async(txn) => {
         });
         
     } catch (error) {
-        console.log("SEND ETH :: ", error);
+
+        console.log("SEND ETH :: ", error.reason);
 
         let status = "failed";
 
-        await updateTxnStatus(txn._id, txn.from, status , txn.hash, error.message);
+        await updateTxnStatus(txn._id, txn.from, status , txn.hash, error.reason);
 
         return;
     }
@@ -122,39 +124,52 @@ const sendETH = async(txn) => {
 
 const sendERC20 = async(txn) => {
 
-    await initializeWeb3();
-
-    let account = await accountsModel.findOne({email:txn.email}).lean().exec();
-
-    let settings = await settingsModel.findOne({}).lean().exec();
-
-    let wallet = new ethers.Wallet(await getWallet(account.ref),provider);
-    console.log("WALLET ::",wallet.address);
-
-    let walletSigner = wallet.connect(provider);
-    console.log("SIGNER ::",walletSigner.address);
-
-    let contractAddress = settings.contract[`${(txn.source).toUpperCase()}`];
-
-    const contract = new ethers.Contract(contractAddress, contract_abi, walletSigner);
-
-    // const contract_balance = (await erc20.balanceOf(wallet.address)).toString();
-
-    const contract_decimal = await contract.decimals();
-    
-    let token_amount = await ethers.utils.parseUnits('2', contract_decimal);
-
-    console.log("ERC20::",token_amount.toString());
-
-    await contract.transfer(txn.to, token_amount).then(async(transaction) => {
+    try {
         
-        console.log("TRANSACTION HASH :: ",transaction.hash);
+        await initializeWeb3();
 
-        let status = "pending";
+        let account = await accountsModel.findOne({email:txn.email}).lean().exec();
     
-        await updateTxnStatus(txn._id, txn.from, status , transaction.hash, '');
+        let settings = await settingsModel.findOne({}).lean().exec();
     
-    })
+        let wallet = new ethers.Wallet(await getWallet(account.ref),provider);
+        console.log("WALLET ::",wallet.address);
+    
+        let walletSigner = wallet.connect(provider);
+        console.log("SIGNER ::",walletSigner.address);
+    
+        let contractAddress = settings.contract[`${(txn.source).toUpperCase()}`];
+    
+        const contract = new ethers.Contract(contractAddress, contract_abi, walletSigner);
+    
+        // const contract_balance = (await erc20.balanceOf(wallet.address)).toString();
+    
+        const contract_decimal = await contract.decimals();
+        
+        let token_amount = await ethers.utils.parseUnits('2', contract_decimal);
+    
+        console.log("ERC20::",token_amount.toString());
+    
+        await contract.transfer(txn.to, token_amount).then(async(transaction) => {
+            
+            console.log("TRANSACTION HASH :: ",transaction.hash);
+    
+            let status = "pending";
+        
+            await updateTxnStatus(txn._id, txn.from, status , transaction.hash, '');
+        
+        })
+
+    } catch (error) {
+
+        console.log("SEND ERC20 :: ", error.reason);
+
+        let status = "failed";
+
+        await updateTxnStatus(txn._id, txn.from, status , txn.hash, error.reason);
+
+        return;
+    }
 
 }
 
