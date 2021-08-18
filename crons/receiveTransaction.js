@@ -19,6 +19,7 @@ mongoose
       config.db.dbName
   )
   .then(() => {
+    // var provider = new ethers.providers.WebSocketProvider(url);
     // getWalletAddress();
     init();
   });
@@ -29,6 +30,7 @@ var url = "wss://ropsten.infura.io/ws/v3/a478bf40f7b24494b30b082c0d225104";
 
 // PROVIDER
 var provider = new ethers.providers.WebSocketProvider(url);
+console.log(provider.getBalance("0xa83ad9b5689d100455f47304e116b46feAd3690A"));
 
 let transactionsToAdd = [];
 let pendingTokenTransactions = [];
@@ -133,7 +135,8 @@ const checkBlocks = async () => {
 
             transactionsToAdd.push(txn);
 
-            // addCoinTransaction(); // TODO
+            // ADD COIN TRANSACTION
+            coinTransaction();
           } else if (contracts.indexOf(txn.to) >= 0) {
             //TOKEN TRANSACTIONS
 
@@ -144,6 +147,7 @@ const checkBlocks = async () => {
             // checkTokenTransaction(); // TODO
           }
 
+          console.log("to",txn.from ,txn.to)
           if (wallets.indexOf(txn.from >= 0)) {
             // TRANSACTION FROM WALLET GOT CONFIRMED
             console.log(":: TRANSACTION FROM WALLET ::");
@@ -255,13 +259,112 @@ const coinTransaction = async () => {
         .lean()
         .exec();
 
-      if( await isTransactionMine(txn.hash, user.email) ) {
+      if (user != null) {
+        if (await isTransactionMine(txn.hash, user.email)) {
+          // TRANSACTION NOT INTIATED FROM 'TO' ADDRESS
 
-        let balance = await provider.getBalance(txn.to);
+          let balance = await ethers.utils.formatEther(
+            await provider.getBalance(txn.to)
+          );
 
+          console.log(":: IS_TRANSACTION_MINE_BALANCE ::", balance);
 
+          await walletsModel.updateOne(
+            {
+              email: user.email,
+            },
+            {
+              $set: {
+                "eth.balance": String(balance),
+              },
+            },
+            {
+              upsert: true,
+            }
+          );
+
+          await transactionsModel.updateOne(
+            {
+              hash: txn.hash,
+            },
+            {
+              $set: {
+                status: constants.TXNS.SUCCESS,
+              },
+            },
+            {
+              upsert: true,
+            }
+          );
+        } else {
+          // EXTERNAL TRANSACTION
+
+          console.log(":: EXTERNAL TRANSACTION ::")
+
+          // await transactionsModel.updateOne(
+          //   {
+          //     $and:[{
+          //       hash: txn.hash
+          //     },{
+          //       status: constants.TXNS.PENDING
+          //     }]
+          //   },
+          //   {
+          //     $set: {
+          //       status: constants.TXNS.SUCCESS,
+          //     },
+          //   },
+          //   {
+          //     upsert: true,
+          //   }
+          // );
+
+          console.log("1",txn.gasLimit, (txn.gasLimit).toNumber() ,await ethers.utils.formatEther(txn.gasLimit)*(10**18))
+          console.log("2",txn.gasPrice, (txn.gasPrice).toNumber(), await ethers.utils.formatEther(txn.gasPrice))
+          console.log("3",await ethers.utils.parseEther(await ethers.utils.formatEther(txn.gasPrice)))
+          await transactionsModel.create({
+            email: user.email,
+            ref: "",
+            from: txn.from,
+            to: txn.to,
+            source: "eth",
+            target: "eth",
+            sourceAmount: await ethers.utils.formatEther(txn.value),
+            targetAmount: await ethers.utils.formatEther(txn.value),
+            value: await ethers.utils.formatEther(txn.value),
+            type: "received",
+            currency: "eth",
+            error: "nil",
+            hash: txn.hash,
+            status: constants.TXNS.SUCCESS,
+            error: "nil",
+            reason: "",
+            gasLimit: txn.gasLimit,
+            gasPrice: txn.gasPrice,
+            timestamp: String(new Date().getTime()),
+          });
+
+          let balance = await ethers.utils.formatEther(
+            await provider.getBalance(txn.to)
+          );
+
+          await walletsModel.updateOne(
+            {
+              email: user.email,
+            },
+            {
+              $set: {
+                "eth.balance": String(balance),
+              },
+            },
+            {
+              upsert: true,
+            }
+          );
+        }
       }
 
+      transactionsToAdd.shift();
     }
   } catch (error) {
     console.log(":: COIN TRANSACTION ERROR ::", error);
@@ -290,7 +393,6 @@ const isTransactionMine = async (hash, email) => {
     }
 
     return true;
-  
   } catch (error) {
     console.log(":: IS_TRANSACTION_MINE ::", error);
     return;

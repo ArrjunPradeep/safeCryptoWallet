@@ -18,8 +18,8 @@ const schema = new mongoose.Schema({
     error: String,
     reason: String,
     fee: Number,
-    gasLimit: Object,
-    gasPrice: Object,
+    gasLimit: String,
+    gasPrice: String,
     timestamp: {
         type: String,
         default: new Date().getTime()

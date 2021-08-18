@@ -25,7 +25,7 @@ module.exports = {
         password: "318798111",
         network: "testnet",//"livenet", //"testnet",
         gasLimit: "0x7a1200",
-        provider: "https://ropsten.infura.io/v3/16ff5fee085c49058c03811f9bceef0b",
+        provider: "https://ropsten.infura.io/v3/4df9f11fa35549cd800bda9665b6ac94",
         bprovider: "https://data-seed-prebsc-2-s3.binance.org:8545/",
         web3Key: "16ff5fee085c49058c03811f9bceef0b",
         ref: "22222",

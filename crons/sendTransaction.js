@@ -14,7 +14,7 @@ const initializeWeb3 = async() => {
        
         var url = config.wallet.provider;
         provider = new ethers.providers.JsonRpcProvider(url);
-        // console.log("PROVIDER::",provider);
+        console.log("PROVIDER::",provider);
 
     } catch (error) {
         console.log("INFURA ERROR :: ",error);
@@ -94,8 +94,8 @@ const sendETH = async(txn) => {
             to : txn.to,
             value : ethers.utils.parseEther(txn.sourceAmount),
             nonce : provider.getTransactionCount(wallet.address, 'latest'),
-            gasLimit : txn.gasLimit, //provider.estimateGas(), //ethers.utils.hexlify('100000'), // 100000
-            gasPrice : txn.gasPrice //provider.getGasPrice()
+            // gasLimit : ethers.utils.parseEther(txn.gasLimit), //provider.estimateGas(), //ethers.utils.hexlify('100000'), // 100000
+            // gasPrice : ethers.utils.parseEther(txn.gasPrice) //provider.getGasPrice()
         }        
 
 
@@ -183,7 +183,7 @@ const updateTxnStatus = async(id, from, status, hash, message) => {
         {
             $set:{
                 from: from,
-                txHash: hash,
+                hash: hash,
                 status: status,
                 reason: message
             }
