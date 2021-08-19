@@ -146,9 +146,9 @@ const sendERC20 = async(txn) => {
     
         const contract_decimal = await contract.decimals();
         
-        let token_amount = await ethers.utils.parseUnits('2', contract_decimal);
+        let token_amount = await ethers.utils.parseUnits(txn.sourceAmount, contract_decimal);
     
-        console.log("ERC20::",token_amount.toString());
+        console.log("ERC20::",token_amount);
     
         await contract.transfer(txn.to, token_amount).then(async(transaction) => {
             

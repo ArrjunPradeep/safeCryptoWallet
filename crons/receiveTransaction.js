@@ -30,7 +30,6 @@ var url = "wss://ropsten.infura.io/ws/v3/a478bf40f7b24494b30b082c0d225104";
 
 // PROVIDER
 var provider = new ethers.providers.WebSocketProvider(url);
-console.log(provider.getBalance("0xa83ad9b5689d100455f47304e116b46feAd3690A"));
 
 let transactionsToAdd = [];
 let pendingTokenTransactions = [];
@@ -42,15 +41,15 @@ let initialBlock =
     ? "latest"
     : config.receiveCron.initialBlock;
 let isRunning = false;
+let contracts = [];
 
 var init = async () => {
   // EVENT LISTENING WHEN NEW BLOCKS MINED
   provider.on("block", async (tx) => {
-    console.log("TX::", tx);
 
     if (latestBlock == undefined) {
       latestBlock = await provider.getBlock(initialBlock);
-      console.log("LATEST BLOCK::", latestBlock.number);
+      console.log(":: LATEST BLOCK :: ", latestBlock.number);
       blocksToCheck.push(latestBlock);
       lastCheckedBlock = latestBlock.number - 1;
     }
@@ -59,11 +58,11 @@ var init = async () => {
 
     if (latestBlock == null) {
       latestBlock = await provider.getBlock(lastCheckedBlock);
-      console.log("LATEST BLOCK::", latestBlock.number);
+      console.log(":: PREVIOUS BLOCK :: ", latestBlock.number);
     } else {
-      console.log("LATEST PENDING BLOCK:: ", latestBlock.number);
+      console.log(":: LATEST PENDING BLOCK :: ", latestBlock.number);
       blocksToCheck.push(latestBlock);
-      // checkBlocks()
+      // checkBlocks();
     }
     // provider.getTransaction(tx).then(function (transaction) {
     //   console.log(transaction);
@@ -99,9 +98,10 @@ const checkBlocks = async () => {
 
       let block = blocksToCheck[0];
 
-      console.log("BLOCK::", block);
-
       if (Number(block.number) <= Number(lastCheckedBlock)) {
+
+        console.log(":: CURRENT BLOCK :: ", block.number);
+
         blocksToCheck.shift();
 
         break;
@@ -112,12 +112,10 @@ const checkBlocks = async () => {
 
         lastCheckedBlock = block.number;
 
-        console.log(":: BLOCK TRANSACTIONS ::", block.transactions.length);
+        console.log(":: BLOCK TRANSACTIONS :: ", block.transactions.length,"\n");
 
         await block.transactions.forEach(async (hash) => {
           let txn = await provider.getTransaction(hash);
-
-          console.log("RX", txn);
 
           let wallets = await getWalletAddress();
 
@@ -126,12 +124,14 @@ const checkBlocks = async () => {
             .lean()
             .exec();
 
-          console.log(":: TRANSACTION FROM DB ::", txFromDb);
+          if( txFromDb != null ) {
+            console.log(":: TRANSACTION FROM DB FOUND ::", txFromDb.hash,"\n");
+          }
 
-          if (wallets.indexOf(txn.to >= 0)) {
+          if (wallets.indexOf(txn.to) >= 0) {
             // COIN TRANSACTIONS
 
-            console.log(":: BNB TRANSACTION ::");
+            // console.log(":: BNB TRANSACTION :: ",txn.hash);
 
             transactionsToAdd.push(txn);
 
@@ -147,10 +147,9 @@ const checkBlocks = async () => {
             // checkTokenTransaction(); // TODO
           }
 
-          console.log("to",txn.from ,txn.to)
-          if (wallets.indexOf(txn.from >= 0)) {
-            // TRANSACTION FROM WALLET GOT CONFIRMED
-            console.log(":: TRANSACTION FROM WALLET ::");
+          if (wallets.indexOf(txn.from) >= 0) {
+            // INTERNAL TRANSACTION - UPDATE THE STATUS OF TYPE : "SEND" UPON SUCCESSFULL TRANSACTION
+            console.log(":: TRANSACTION FROM WALLET :: \n");
 
             let txFromDb = await transactionsModel
               .findOne({ hash: txn.hash })
@@ -159,8 +158,6 @@ const checkBlocks = async () => {
 
             let status = constants.TXNS.SUCCESS;
 
-            let balance = await provider.getBalance(txn.from);
-
             let user = await walletsModel
               .findOne({ "eth.address": txn.from })
               .lean()
@@ -168,6 +165,11 @@ const checkBlocks = async () => {
 
             if (user != null) {
               // UPDATE THE TRANSACTION STATUS [SUCCESS]
+
+              let balance = await ethers.utils.formatEther(
+                await provider.getBalance(txn.from)
+              );
+     
               await transactionsModel.updateOne(
                 {
                   $and: [
@@ -182,6 +184,7 @@ const checkBlocks = async () => {
                 {
                   $set: {
                     status: status,
+                    from: txn.from
                   },
                 }
               );
@@ -198,19 +201,19 @@ const checkBlocks = async () => {
                 }
               );
 
-              if (contracts.indexOf(tx.to) == -1) {
-                let receiverWallet = await walletsModel
-                  .findOne({ "eth.address": txn.to })
-                  .lean()
-                  .exec();
+              // if (contracts.indexOf(txn.to) == -1) {
+              //   let receiverWallet = await walletsModel
+              //     .findOne({ "eth.address": txn.to })
+              //     .lean()
+              //     .exec();
 
-                //hotfix  - But it'll work
-                if (receiverWallet != null) {
-                  receiver = receiverWallet.email;
-                } else {
-                  receiver = txn.to;
-                }
-              }
+              //   //hotfix  - But it'll work
+              //   if (receiverWallet != null) {
+              //     receiver = receiverWallet.email;
+              //   } else {
+              //     receiver = txn.to;
+              //   }
+              // }
             }
           }
         });
@@ -234,7 +237,7 @@ const getWalletAddress = async () => {
       address.push(users.eth.address);
     });
 
-    console.log(":: WALLET ADDRESS ::", address);
+    // console.log(":: WALLET ADDRESS ::", address);
 
     return address;
   } catch (error) {
@@ -246,6 +249,9 @@ const getWalletAddress = async () => {
 
 const coinTransaction = async () => {
   try {
+
+    console.log(":: COIN TRANSACTION :: ");
+
     while (transactionsToAdd.length > 0) {
       let txn = transactionsToAdd[0];
 
@@ -297,31 +303,10 @@ const coinTransaction = async () => {
             }
           );
         } else {
-          // EXTERNAL TRANSACTION
+          // EXTERNAL TRANSACTION [RECEIVE]
 
-          console.log(":: EXTERNAL TRANSACTION ::")
+          console.log(":: EXTERNAL TRANSACTION FOUND :: ",txn.hash,"\n");
 
-          // await transactionsModel.updateOne(
-          //   {
-          //     $and:[{
-          //       hash: txn.hash
-          //     },{
-          //       status: constants.TXNS.PENDING
-          //     }]
-          //   },
-          //   {
-          //     $set: {
-          //       status: constants.TXNS.SUCCESS,
-          //     },
-          //   },
-          //   {
-          //     upsert: true,
-          //   }
-          // );
-
-          console.log("1",txn.gasLimit, (txn.gasLimit).toNumber() ,await ethers.utils.formatEther(txn.gasLimit)*(10**18))
-          console.log("2",txn.gasPrice, (txn.gasPrice).toNumber(), await ethers.utils.formatEther(txn.gasPrice))
-          console.log("3",await ethers.utils.parseEther(await ethers.utils.formatEther(txn.gasPrice)))
           await transactionsModel.create({
             email: user.email,
             ref: "",
