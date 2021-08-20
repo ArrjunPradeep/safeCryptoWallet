@@ -2,6 +2,9 @@ var ethers = require("ethers");
 var config = require("../config/config");
 const mongoose = require("mongoose");
 const constants = require("../constants/constants");
+var contract_abi = require("../contract/abi").abi;
+let abiDecoder = require("abi-decoder");
+abiDecoder.addABI(contract_abi);
 const walletsModel = require("../models/wallets");
 const transactionsModel = require("../models/transactions");
 
@@ -18,10 +21,10 @@ mongoose
       "/" +
       config.db.dbName
   )
-  .then(() => {
+  .then(async () => {
     // var provider = new ethers.providers.WebSocketProvider(url);
     // getWalletAddress();
-    init();
+    // init();
   });
 
 // WEBSOCKET URL
@@ -44,9 +47,13 @@ let isRunning = false;
 let contracts = [];
 
 var init = async () => {
+  let contractData = config.wallet.contracts;
+  contractData.forEach((_contractData) => {
+    contracts.push(_contractData.address);
+  });
+
   // EVENT LISTENING WHEN NEW BLOCKS MINED
   provider.on("block", async (tx) => {
-
     if (latestBlock == undefined) {
       latestBlock = await provider.getBlock(initialBlock);
       console.log(":: LATEST BLOCK :: ", latestBlock.number);
@@ -99,7 +106,6 @@ const checkBlocks = async () => {
       let block = blocksToCheck[0];
 
       if (Number(block.number) <= Number(lastCheckedBlock)) {
-
         console.log(":: CURRENT BLOCK :: ", block.number);
 
         blocksToCheck.shift();
@@ -112,7 +118,11 @@ const checkBlocks = async () => {
 
         lastCheckedBlock = block.number;
 
-        console.log(":: BLOCK TRANSACTIONS :: ", block.transactions.length,"\n");
+        console.log(
+          ":: BLOCK TRANSACTIONS :: ",
+          block.transactions.length,
+          "\n"
+        );
 
         await block.transactions.forEach(async (hash) => {
           let txn = await provider.getTransaction(hash);
@@ -124,8 +134,8 @@ const checkBlocks = async () => {
             .lean()
             .exec();
 
-          if( txFromDb != null ) {
-            console.log(":: TRANSACTION FROM DB FOUND ::", txFromDb.hash,"\n");
+          if (txFromDb != null) {
+            console.log(":: TRANSACTION FROM DB FOUND ::", txFromDb.hash, "\n");
           }
 
           if (wallets.indexOf(txn.to) >= 0) {
@@ -169,7 +179,7 @@ const checkBlocks = async () => {
               let balance = await ethers.utils.formatEther(
                 await provider.getBalance(txn.from)
               );
-     
+
               await transactionsModel.updateOne(
                 {
                   $and: [
@@ -184,7 +194,7 @@ const checkBlocks = async () => {
                 {
                   $set: {
                     status: status,
-                    from: txn.from
+                    from: txn.from,
                   },
                 }
               );
@@ -249,7 +259,6 @@ const getWalletAddress = async () => {
 
 const coinTransaction = async () => {
   try {
-
     console.log(":: COIN TRANSACTION :: ");
 
     while (transactionsToAdd.length > 0) {
@@ -305,7 +314,7 @@ const coinTransaction = async () => {
         } else {
           // EXTERNAL TRANSACTION [RECEIVE]
 
-          console.log(":: EXTERNAL TRANSACTION FOUND :: ",txn.hash,"\n");
+          console.log(":: EXTERNAL TRANSACTION FOUND :: ", txn.hash, "\n");
 
           await transactionsModel.create({
             email: user.email,
@@ -357,6 +366,151 @@ const coinTransaction = async () => {
   }
 };
 
+const tokenTransaction = async () => {
+  try {
+    while (pendingTokenTransactions > 0) {
+      let txn = await provider.getTransactionReceipt(
+        pendingTokenTransactions[0].push
+      );
+
+      if (txn.status == true) {
+        txn.from = await ethers.utils.getAddress(txn.from);
+        txn.to = await ethers.utils.getAddress(txn.to);
+        txn.hash = txn.transactionHash;
+
+        console.log(":: TRANSACTION HASH :: ", txn.hash);
+
+        let events = abiDecoder.decodeLogs(txn.logs);
+
+        let user;
+        let extractedEvent = {};
+
+        const token = new ethers.Contract(
+          txn.contractAddress,
+          contract_abi,
+          provider
+        );
+
+        let token_decimal = await token.decimal();
+        let token_symbol = await token.symbol();
+
+        let senderBalance, receiverBalance;
+
+        let txFromDb = await transactionsModel
+          .findOne({
+            hash: txn.hash,
+          })
+          .lean()
+          .exec();
+
+        await events.forEachAsync(async (_event) => {
+          if (_event["name"] == "Transfer") {
+            await _event.events.forEachAsync(async (param) => {
+              extractedEvent[param.name] = param.value;
+            });
+
+            extractedEvent.to = await ethers.utils.getAddress(
+              extractedEvent.to
+            );
+
+            user = await walletsModel
+              .findOne({ "eth.address": extractedEvent.to })
+              .lean()
+              .exec();
+
+            if (txFromDb == null) {
+              if (user != null) {
+                await transactionsModel.create({
+                  email: user.email,
+                  ref: "",
+                  from: extractedEvent.from,
+                  to: extractedEvent.to,
+                  source: token_symbol,
+                  target: token_symbol,
+                  sourceAmount: await ethers.utils.formatEther(
+                    extractedEvent.value
+                  ),
+                  targetAmount: await ethers.utils.formatEther(
+                    extractedEvent.value
+                  ),
+                  value: await ethers.utils.formatEther(extractedEvent.value),
+                  type: "received",
+                  currency: token_symbol,
+                  error: "nil",
+                  hash: txn.hash,
+                  status: constants.TXNS.SUCCESS,
+                  error: "nil",
+                  reason: "",
+                  gasLimit: txn.gasLimit,
+                  gasPrice: txn.gasPrice,
+                  timestamp: String(new Date().getTime()),
+                });
+              }
+            }
+          }
+        });
+
+        let receiverTxnCheck = null;
+        let receiver = await walletsModel
+          .findOne({
+            "eth.address": extractedEvent.to,
+          })
+          .lean()
+          .exec();
+
+        if (receiver != null) {
+          receiverTxnCheck = await transactionsModel
+            .findOne({
+              $and: [
+                {
+                  hash: txn.hash,
+                },
+                {
+                  to: extractedEvent.to,
+                },
+                {
+                  email: receiver.email,
+                },
+              ],
+            })
+            .lean()
+            .exec();
+        }
+
+        if (await isInternalTransaction(txn.hash)) {
+          await transactionsModel.updateOne(
+            {
+              $and: [
+                {
+                  hash: txn.hash,
+                },
+                {
+                  status: {
+                    $ne: constants.TXNS.SUCCESS,
+                  },
+                },
+              ],
+            },
+            {
+              $set: {
+                status: constants.TXNS.SUCCESS,
+              },
+            }
+          );
+        }
+
+        // UPDATE SENDER / RECEIVERS TOKEN BALANCE
+        senderBalance = await token.balanceOf(txn.from).call();
+        receiverBalance = await token.balanceOf(extractedEvent.to).call();
+
+      }
+    }
+  } catch (error) {
+    console.log(":: TOKEN TRANSACTION ERROR :: ", error);
+    return;
+  }
+};
+
 const isTransactionMine = async (hash, email) => {
   try {
     let transaction = await transactionsModel
@@ -380,6 +534,24 @@ const isTransactionMine = async (hash, email) => {
     return true;
   } catch (error) {
     console.log(":: IS_TRANSACTION_MINE ::", error);
+    return;
+  }
+};
+
+const isInternalTransaction = async (hash) => {
+  try {
+    let transaction = await transactionsModel
+      .findOne({ hash: hash })
+      .lean()
+      .exec();
+
+    if (transaction == null || undefined || "") {
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.log(":: IS INTERNAL TRANSACTION ERROR :: ", error);
     return;
   }
 };
