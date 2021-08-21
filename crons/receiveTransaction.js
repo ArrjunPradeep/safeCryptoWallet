@@ -45,6 +45,7 @@ let initialBlock =
     : config.receiveCron.initialBlock;
 let isRunning = false;
 let contracts = [];
+var isTokenrunning = false;
 
 var init = async () => {
   let contractData = config.wallet.contracts;
@@ -367,6 +368,8 @@ const coinTransaction = async () => {
 };
 
 const tokenTransaction = async () => {
+  isTokenrunning = true;
+
   try {
     while (pendingTokenTransactions > 0) {
       let txn = await provider.getTransactionReceipt(
@@ -503,9 +506,72 @@ const tokenTransaction = async () => {
         senderBalance = await token.balanceOf(txn.from).call();
         receiverBalance = await token.balanceOf(extractedEvent.to).call();
 
+        let sender = await walletsModel
+          .findOne({ "eth.address": txn.from })
+          .lean()
+          .exec();
+
+        if (user != null) {
+          await walletsModel.updateOne(
+            { email: user.email },
+            {
+              $set: {
+                [`${token_symbol.toLowerCase()}.balance`]: receiverBalance,
+              },
+            }
+          );
+        }
+
+        if (sender != null) {
+          console.log(":: SENDER ACCOUNT :: ", sender);
+
+          await walletsModel.updateOne(
+            { email: sender.email },
+            {
+              $set: {
+                [`${token_symbol.toLowerCase()}.balance`]: senderBalance,
+              },
+            }
+          );
+
+          if (txFromDb != null) {
+            let receiver = await walletsModel
+              .findOne({ "eth.address": extractedEvent.to })
+              .lean()
+              .exec();
+
+            if (receiver != null) {
+              receiver = receiver.email;
+            } else {
+              receiver = extractedEvent.to;
+            }
+          }
+        }
+
+        if (txFromDb != null) {
+        }
+
+        if (user != null) {
+          let balance = await token.balanceOf(extractedEvent.to).call();
+
+          await walletsModel.updateOne(
+            { email: user.email },
+            {
+              $set: {
+                [`${token_symbol.toLowerCase()}.balance`]: balance,
+              },
+            }
+          );
+        }
+
+        pendingTokenTransactions.shift();
+      } else {
+        pendingTokenTransactions.shift();
       }
     }
+    isTokenrunning = false;
   } catch (error) {
+    isTokenrunning = false;
     console.log(":: TOKEN TRANSACTION ERROR :: ", error);
     return;
   }
