@@ -22,14 +22,13 @@ mongoose
       config.db.dbName
   )
   .then(async () => {
-    // var provider = new ethers.providers.WebSocketProvider(url);
-    // getWalletAddress();
     init();
   });
 
 // WEBSOCKET URL
 // var url = "wss://ropsten.infura.io/ws/v3/a478bf40f7b24494b30b082c0d225104";
-var url = "wss://bsc.getblock.io/testnet/?api_key=c3c3dca1-f735-4463-9b14-f108b37f942a";
+var url = "wss://bsc.getblock.io/testnet/?api_key=7f919aac-9d46-49f6-8dc9-453d3a9471a6";
+// c3c3dca1-f735-4463-9b14-f108b37f942a";
 
 // PROVIDER
 var provider = new ethers.providers.WebSocketProvider(url);
@@ -127,6 +126,8 @@ const checkBlocks = async () => {
 
         await block.transactions.forEach(async (hash) => {
           let txn = await provider.getTransaction(hash);
+          // txn.to = await ethers.utils.getAddress(txn.to);
+          // txn.from = await ethers.utils.getAddress(txn.from);          
 
           let wallets = await getWalletAddress();
 
@@ -139,10 +140,14 @@ const checkBlocks = async () => {
             console.log(":: TRANSACTION FROM DB FOUND ::", txFromDb.hash, "\n");
           }
 
+
+          if(txn.to == await ethers.utils.getAddress("0x5f5f52dfdb123af72abc43ab36c191e05c9e5904")) {
+            console.log("::TXN::",txn);
+          }
+          
           if (wallets.indexOf(txn.to) >= 0) {
             // COIN TRANSACTIONS
-
-            // console.log(":: BNB TRANSACTION :: ",txn.hash);
+            console.log(":: COIN TRANSACTION :: ");
 
             transactionsToAdd.push(txn);
 
@@ -259,7 +264,6 @@ const getWalletAddress = async () => {
 
 const coinTransaction = async () => {
   try {
-    console.log(":: COIN TRANSACTION :: ");
 
     while (transactionsToAdd.length > 0) {
       let txn = transactionsToAdd[0];
@@ -372,11 +376,14 @@ const tokenTransaction = async () => {
   console.log(":: TOKEN TRANSACTION ::");
 
   try {
-    while (pendingTokenTransactions > 0) {
+
+    while (pendingTokenTransactions.length > 0) {
       let txn = await provider.getTransactionReceipt(
-        pendingTokenTransactions[0].push
+        pendingTokenTransactions[0].hash
       );
 
+        console.log("CUR TXN::",txn);
+    
       if (txn.status == true) {
         txn.from = await ethers.utils.getAddress(txn.from);
         txn.to = await ethers.utils.getAddress(txn.to);
@@ -389,14 +396,17 @@ const tokenTransaction = async () => {
         let user;
         let extractedEvent = {};
 
-        const token = new ethers.Contract(
-          txn.contractAddress,
+        let token = new ethers.Contract(
+          txn.to, // CONTRACT ADDRESS
           contract_abi,
           provider
         );
 
-        let token_decimal = await token.decimal();
+        let token_decimal = await token.decimals();
         let token_symbol = await token.symbol();
+        
+
+        console.log("dADAD",await token.balanceOf(txn.from).call());
 
         let senderBalance, receiverBalance;
 
@@ -407,9 +417,9 @@ const tokenTransaction = async () => {
           .lean()
           .exec();
 
-        await events.forEachAsync(async (_event) => {
+        await events.forEach(async (_event) => {
           if (_event["name"] == "Transfer") {
-            await _event.events.forEachAsync(async (param) => {
+            await _event.events.forEach(async (param) => {
               extractedEvent[param.name] = param.value;
             });
 

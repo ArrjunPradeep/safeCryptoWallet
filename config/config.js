@@ -37,7 +37,7 @@ module.exports = {
             {
                 name: 'Bank of BIT ETH',
                 symbol: 'bobe',
-                address: '0x75A471613aC0B0Ed0fCe30FdD45a649eE4542be5'
+                address: '0x5F5f52DFdB123af72aBc43ab36c191e05c9E5904'
             },
         ]
     },
