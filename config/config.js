@@ -19,6 +19,10 @@ module.exports = {
     etherscan : {
         apiKey: 'IP3C2JRFFU14ER43G1N5BJXC6HI8BWPT9F'
     },
+
+    bscscan : {
+        apiKey: 'ZH8ZNRHSX9TCAAJDAVGXJRCRZBYFU5X1R4'
+    },
                          
     wallet: {
         mnemonics: "observe room column stick carpet agree flavor safe decline trigger dial business",

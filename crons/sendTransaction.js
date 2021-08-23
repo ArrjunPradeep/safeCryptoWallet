@@ -12,9 +12,9 @@ const constants = require("../constants/constants");
 const initializeWeb3 = async() => {
     try {
        
-        var url = config.wallet.provider;
+        var url = config.wallet.bprovider;
         provider = new ethers.providers.JsonRpcProvider(url);
-        console.log("PROVIDER::",provider);
+        // console.log("PROVIDER::",provider);
 
     } catch (error) {
         console.log("INFURA ERROR :: ",error);
@@ -45,12 +45,12 @@ const initiateTransaction = async() => {
 
                 switch (txn.source) {
     
-                    case "eth": console.log("::ETH::");
-                                sendETH(txn);
+                    case "bnb": console.log("::COIN::");
+                                sendCoin(txn);
                                 break;  
     
-                    default: console.log("::ERC20::");
-                             sendERC20(txn);
+                    default: console.log("::TOKEN::");
+                             sendToken(txn);
                              break;
                 }
 
@@ -67,7 +67,7 @@ const initiateTransaction = async() => {
 
 }
 
-const sendETH = async(txn) => {
+const sendCoin = async(txn) => {
 
     try {
     
@@ -111,7 +111,7 @@ const sendETH = async(txn) => {
         
     } catch (error) {
 
-        console.log("SEND ETH :: ", error.reason);
+        console.log("SEND COIN :: ", error.reason);
 
         let status = "failed";
 
@@ -122,7 +122,7 @@ const sendETH = async(txn) => {
 
 }
 
-const sendERC20 = async(txn) => {
+const sendToken = async(txn) => {
 
     try {
         

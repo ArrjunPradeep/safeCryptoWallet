@@ -24,12 +24,12 @@ mongoose
   .then(async () => {
     // var provider = new ethers.providers.WebSocketProvider(url);
     // getWalletAddress();
-    // init();
+    init();
   });
 
 // WEBSOCKET URL
-var url = "wss://ropsten.infura.io/ws/v3/a478bf40f7b24494b30b082c0d225104";
-// var url = "wss://bsc.getblock.io/testnet/?api_key=c3c3dca1-f735-4463-9b14-f108b37f942a";
+// var url = "wss://ropsten.infura.io/ws/v3/a478bf40f7b24494b30b082c0d225104";
+var url = "wss://bsc.getblock.io/testnet/?api_key=c3c3dca1-f735-4463-9b14-f108b37f942a";
 
 // PROVIDER
 var provider = new ethers.providers.WebSocketProvider(url);
@@ -155,7 +155,8 @@ const checkBlocks = async () => {
 
             pendingTokenTransactions.push(txn);
 
-            // checkTokenTransaction(); // TODO
+            // ADD TOKEN TRANSACTION
+            tokenTransaction();
           }
 
           if (wallets.indexOf(txn.from) >= 0) {
@@ -170,7 +171,7 @@ const checkBlocks = async () => {
             let status = constants.TXNS.SUCCESS;
 
             let user = await walletsModel
-              .findOne({ "eth.address": txn.from })
+              .findOne({ "bnb.address": txn.from })
               .lean()
               .exec();
 
@@ -207,14 +208,14 @@ const checkBlocks = async () => {
                 },
                 {
                   $set: {
-                    "eth.balance": String(balance),
+                    "bnb.balance": String(balance),
                   },
                 }
               );
 
               // if (contracts.indexOf(txn.to) == -1) {
               //   let receiverWallet = await walletsModel
-              //     .findOne({ "eth.address": txn.to })
+              //     .findOne({ "bnb.address": txn.to })
               //     .lean()
               //     .exec();
 
@@ -245,7 +246,7 @@ const getWalletAddress = async () => {
     let wallets = await walletsModel.find({}).lean().exec();
 
     wallets.forEach((users) => {
-      address.push(users.eth.address);
+      address.push(users.bnb.address);
     });
 
     // console.log(":: WALLET ADDRESS ::", address);
@@ -266,7 +267,7 @@ const coinTransaction = async () => {
       let txn = transactionsToAdd[0];
 
       let user = await walletsModel
-        .findOne({ "eth.address": txn.to })
+        .findOne({ "bnb.address": txn.to })
         .lean()
         .exec();
 
@@ -291,7 +292,7 @@ const coinTransaction = async () => {
             },
             {
               $set: {
-                "eth.balance": String(balance),
+                "bnb.balance": String(balance),
               },
             },
             {
@@ -322,13 +323,13 @@ const coinTransaction = async () => {
             ref: "",
             from: txn.from,
             to: txn.to,
-            source: "eth",
-            target: "eth",
+            source: "bnb",
+            target: "bnb",
             sourceAmount: await ethers.utils.formatEther(txn.value),
             targetAmount: await ethers.utils.formatEther(txn.value),
             value: await ethers.utils.formatEther(txn.value),
             type: "received",
-            currency: "eth",
+            currency: "bnb",
             error: "nil",
             hash: txn.hash,
             status: constants.TXNS.SUCCESS,
@@ -349,7 +350,7 @@ const coinTransaction = async () => {
             },
             {
               $set: {
-                "eth.balance": String(balance),
+                "bnb.balance": String(balance),
               },
             },
             {
@@ -417,7 +418,7 @@ const tokenTransaction = async () => {
             );
 
             user = await walletsModel
-              .findOne({ "eth.address": extractedEvent.to })
+              .findOne({ "bnb.address": extractedEvent.to })
               .lean()
               .exec();
 
@@ -456,7 +457,7 @@ const tokenTransaction = async () => {
         let receiverTxnCheck = null;
         let receiver = await walletsModel
           .findOne({
-            "eth.address": extractedEvent.to,
+            "bnb.address": extractedEvent.to,
           })
           .lean()
           .exec();
@@ -507,7 +508,7 @@ const tokenTransaction = async () => {
         receiverBalance = await token.balanceOf(extractedEvent.to).call();
 
         let sender = await walletsModel
-          .findOne({ "eth.address": txn.from })
+          .findOne({ "bnb.address": txn.from })
           .lean()
           .exec();
 
@@ -536,7 +537,7 @@ const tokenTransaction = async () => {
 
           if (txFromDb != null) {
             let receiver = await walletsModel
-              .findOne({ "eth.address": extractedEvent.to })
+              .findOne({ "bnb.address": extractedEvent.to })
               .lean()
               .exec();
 

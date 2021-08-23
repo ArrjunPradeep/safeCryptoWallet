@@ -34,7 +34,7 @@ router.post("/activateAccount", async (req, res, next) => {
   }
 });
 
-// CREATE NEW WALLETS - ETH & ERC20 TOKENS
+// CREATE NEW WALLETS - BNB & TOKENS
 router.get("/createWallet", async (req, res, next) => {
   try {
     let { email, password } = req.body;
@@ -145,11 +145,42 @@ router.get("/send", async (req, res, next) => {
   }
 });
 
-// SET DIFFERENT TRANSACTION FEE 
-router.get("/transactionFee", async(req,res) => {
+// RETREIVE TRANSACTION HISTORY
+router.get("/transactionHistory", async(req,res) => {
 
   try {
     
+    let sendTransactions = await transactionsModel.find({email:req.query.email,type:"send"},{
+      source: 1,
+      sourceAmount: 1,
+      targetAmount: 1,
+      type: 1,
+      status: 1,
+      timestamp: 1,
+      to: 1,
+      hash: 1,
+      _id:0
+    }).sort({timestamp:-1}).lean().exec();
+    
+    let receiveTransactions = await transactionsModel.find({email:req.query.email,type:"received"},{
+      source: 1,
+      sourceAmount: 1,
+      targetAmount: 1,
+      type: 1,
+      status: 1,
+      timestamp: 1,
+      from: 1,
+      hash: 1,
+      _id:0
+		}).sort({timestamp:-1}).lean().exec();
+
+    return res.status(200).send({
+      status: true,
+      message: {
+        send:sendTransactions,
+        receive:receiveTransactions
+      }
+    })
 
 
   } catch (error) {
@@ -193,14 +224,14 @@ const createWallet = async (email, userData) => {
     let ethereum_wallet = await ethereum_lib.createWallets(ref);
 
     let wallet = {
-      eth: ethereum_wallet,
+      bnb: ethereum_wallet,
       usdt: ethereum_wallet
     };
 
     userData.wallets = wallet;
 
     let block_balance = {
-      eth: '0',
+      bnb: '0',
       usdt: '0'
     }
 
@@ -214,9 +245,9 @@ const createWallet = async (email, userData) => {
     await walletsModel.create({
       email: email,
       id: ref,
-      eth: {
-        balance: block_balance.eth,
-        address: wallet.eth,
+      bnb: {
+        balance: block_balance.bnb,
+        address: wallet.bnb,
         fee: 0,
       },
       usdt: {
@@ -253,7 +284,7 @@ const isExternalAddress = async(crypto, address) => {
 		let account = await walletsModel.find({}).lean().exec();
 
 		await account.forEach(async result => {
-      console.log("wetr",result.eth.address)
+      console.log("wetr",result.bnb.address)
 			if (result.wallets[`${crypto.toLowerCase()}.address`] == address) {
         
         flag = false
@@ -272,6 +303,6 @@ const isExternalAddress = async(crypto, address) => {
 
 } 
 
-// isExternalAddress("ETH","0xEc51E8E9ac545281794AF5488b348CA9b62b1059");
+// isExternalAddress("BNB","0xEc51E8E9ac545281794AF5488b348CA9b62b1059");
 
 module.exports = router;

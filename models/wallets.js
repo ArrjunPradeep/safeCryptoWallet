@@ -8,7 +8,7 @@ const schema = new mongoose.Schema({
 	id: {
 		type: String,
 	},
-	eth: {
+	bnb: {
 		balance: {
 			type: String,
 			default: '0',
