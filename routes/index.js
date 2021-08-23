@@ -225,14 +225,14 @@ const createWallet = async (email, userData) => {
 
     let wallet = {
       bnb: ethereum_wallet,
-      usdt: ethereum_wallet
+      bobe: ethereum_wallet
     };
 
     userData.wallets = wallet;
 
     let block_balance = {
       bnb: '0',
-      usdt: '0'
+      bobe: '0'
     }
 
     await accountsModel.create({
@@ -250,9 +250,9 @@ const createWallet = async (email, userData) => {
         address: wallet.bnb,
         fee: 0,
       },
-      usdt: {
-        balance: block_balance.usdt,
-        address: wallet.usdt,
+      bobe: {
+        balance: block_balance.bobe,
+        address: wallet.bobe,
         fee: 0,
       }
     });

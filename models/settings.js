@@ -5,7 +5,7 @@ const schema = new mongoose.Schema({
     infuraNetwork: Boolean,
     adminRef: Number,
     contractAddress: {
-        usdt: String
+        bobe: String
     }
 })
 

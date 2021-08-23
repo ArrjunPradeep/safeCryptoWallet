@@ -70,18 +70,18 @@ var init = async () => {
     } else {
       console.log(":: LATEST PENDING BLOCK :: ", latestBlock.number);
       blocksToCheck.push(latestBlock);
-      // checkBlocks();
+      checkBlocks();
     }
     // provider.getTransaction(tx).then(function (transaction) {
     //   console.log(transaction);
     // });
   });
 
-  setInterval(() => {
-    if (isRunning == false) {
-      checkBlocks();
-    }
-  }, 15000);
+  // setInterval(() => {
+  //   if (isRunning == false) {
+  //     checkBlocks();
+  //   }
+  // }, 15000);
 
   // const wait = (timeToDelay) => new Promise((resolve) => setTimeout(resolve, timeToDelay));
 
@@ -107,7 +107,7 @@ const checkBlocks = async () => {
       let block = blocksToCheck[0];
 
       if (Number(block.number) <= Number(lastCheckedBlock)) {
-        console.log(":: CURRENT BLOCK :: ", block.number);
+        // console.log(":: CURRENT BLOCK :: ", block.number);
 
         blocksToCheck.shift();
 
@@ -151,8 +151,6 @@ const checkBlocks = async () => {
           } else if (contracts.indexOf(txn.to) >= 0) {
             //TOKEN TRANSACTIONS
 
-            console.log(":: TOKEN TRANSACTION ::");
-
             pendingTokenTransactions.push(txn);
 
             // ADD TOKEN TRANSACTION
@@ -161,7 +159,7 @@ const checkBlocks = async () => {
 
           if (wallets.indexOf(txn.from) >= 0) {
             // INTERNAL TRANSACTION - UPDATE THE STATUS OF TYPE : "SEND" UPON SUCCESSFULL TRANSACTION
-            console.log(":: TRANSACTION FROM WALLET :: \n");
+            console.log(":: TRANSACTION FROM OUR WALLET :: \n");
 
             let txFromDb = await transactionsModel
               .findOne({ hash: txn.hash })
@@ -370,6 +368,8 @@ const coinTransaction = async () => {
 
 const tokenTransaction = async () => {
   isTokenrunning = true;
+
+  console.log(":: TOKEN TRANSACTION ::");
 
   try {
     while (pendingTokenTransactions > 0) {

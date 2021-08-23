@@ -35,8 +35,8 @@ module.exports = {
         ref: "22222",
         contracts: [
             {
-                name: 'tether',
-                symbol: 'usdt',
+                name: 'Bank of BIT ETH',
+                symbol: 'bobe',
                 address: '0x75A471613aC0B0Ed0fCe30FdD45a649eE4542be5'
             },
         ]

@@ -16,7 +16,7 @@ const schema = new mongoose.Schema({
 		address: String,
 		fee: Number
 	},
-	usdt: {
+	bobe: {
 		balance: {
 			type: String,
 			default: '0',

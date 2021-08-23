@@ -5,7 +5,6 @@ const config = require("../config/config");
 
 mongoose.connect('mongodb://' + config.db.userName + ':' + config.db.password + '@' + config.db.host + ':' + config.db.port + '/' + config.db.dbName).then(() => {
     cron.schedule('* * * * *', () => {
-        console.log("sskjhskjfkd")
-        crypto_lib.initiateTransaction()
+        crypto_lib.initiateTransaction();
     });
 })
