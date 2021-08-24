@@ -27,7 +27,8 @@ mongoose
 
 // WEBSOCKET URL
 // var url = "wss://ropsten.infura.io/ws/v3/a478bf40f7b24494b30b082c0d225104";
-var url = "wss://bsc.getblock.io/testnet/?api_key=7f919aac-9d46-49f6-8dc9-453d3a9471a6";
+var url =
+  "wss://bsc.getblock.io/testnet/?api_key=7f919aac-9d46-49f6-8dc9-453d3a9471a6";
 // c3c3dca1-f735-4463-9b14-f108b37f942a";
 
 // PROVIDER
@@ -127,7 +128,7 @@ const checkBlocks = async () => {
         await block.transactions.forEach(async (hash) => {
           let txn = await provider.getTransaction(hash);
           // txn.to = await ethers.utils.getAddress(txn.to);
-          // txn.from = await ethers.utils.getAddress(txn.from);          
+          // txn.from = await ethers.utils.getAddress(txn.from);
 
           let wallets = await getWalletAddress();
 
@@ -140,11 +141,15 @@ const checkBlocks = async () => {
             console.log(":: TRANSACTION FROM DB FOUND ::", txFromDb.hash, "\n");
           }
 
-
-          if(txn.to == await ethers.utils.getAddress("0x5f5f52dfdb123af72abc43ab36c191e05c9e5904")) {
-            console.log("::TXN::",txn);
+          if (
+            txn.to ==
+            (await ethers.utils.getAddress(
+              "0x5f5f52dfdb123af72abc43ab36c191e05c9e5904"
+            ))
+          ) {
+            console.log("::TXN::", txn);
           }
-          
+
           if (wallets.indexOf(txn.to) >= 0) {
             // COIN TRANSACTIONS
             console.log(":: COIN TRANSACTION :: ");
@@ -155,7 +160,7 @@ const checkBlocks = async () => {
             coinTransaction();
           } else if (contracts.indexOf(txn.to) >= 0) {
             //TOKEN TRANSACTIONS
-
+            console.log("TASSA",txn);
             pendingTokenTransactions.push(txn);
 
             // ADD TOKEN TRANSACTION
@@ -252,11 +257,9 @@ const getWalletAddress = async () => {
       address.push(users.bnb.address);
     });
 
-    // console.log(":: WALLET ADDRESS ::", address);
-
     return address;
   } catch (error) {
-    console.log("GETWALLETADDRESS::", error);
+    console.log(":: GETWALLETADDRESS :: ", error);
 
     return address;
   }
@@ -264,7 +267,6 @@ const getWalletAddress = async () => {
 
 const coinTransaction = async () => {
   try {
-
     while (transactionsToAdd.length > 0) {
       let txn = transactionsToAdd[0];
 
@@ -373,23 +375,24 @@ const coinTransaction = async () => {
 const tokenTransaction = async () => {
   isTokenrunning = true;
 
-  console.log(":: TOKEN TRANSACTION ::");
+  console.log(":: TOKEN TRANSACTION ::\n");
 
   try {
-
     while (pendingTokenTransactions.length > 0) {
       let txn = await provider.getTransactionReceipt(
         pendingTokenTransactions[0].hash
       );
 
-        console.log("CUR TXN::",txn);
-    
+      let transaction = pendingTokenTransactions[0]; 
+
+      // console.log("CURRENT TRANSACTION::", txn);
+
       if (txn.status == true) {
         txn.from = await ethers.utils.getAddress(txn.from);
         txn.to = await ethers.utils.getAddress(txn.to);
         txn.hash = txn.transactionHash;
 
-        console.log(":: TRANSACTION HASH :: ", txn.hash);
+        console.log(":: TRANSACTION HASH :: ", txn.hash,"\n");
 
         let events = abiDecoder.decodeLogs(txn.logs);
 
@@ -404,9 +407,6 @@ const tokenTransaction = async () => {
 
         let token_decimal = await token.decimals();
         let token_symbol = await token.symbol();
-        
-
-        console.log("dADAD",await token.balanceOf(txn.from).call());
 
         let senderBalance, receiverBalance;
 
@@ -441,13 +441,18 @@ const tokenTransaction = async () => {
                   to: extractedEvent.to,
                   source: token_symbol,
                   target: token_symbol,
-                  sourceAmount: await ethers.utils.formatEther(
-                    extractedEvent.value
+                  sourceAmount: await ethers.utils.formatUnits(
+                    extractedEvent.value,
+                    token_decimal
                   ),
-                  targetAmount: await ethers.utils.formatEther(
-                    extractedEvent.value
+                  targetAmount: await ethers.utils.formatUnits(
+                    extractedEvent.value,
+                    token_decimal
                   ),
-                  value: await ethers.utils.formatEther(extractedEvent.value),
+                  value: await ethers.utils.formatUnits(
+                    extractedEvent.value,
+                    token_decimal
+                  ),
                   type: "received",
                   currency: token_symbol,
                   error: "nil",
@@ -455,8 +460,8 @@ const tokenTransaction = async () => {
                   status: constants.TXNS.SUCCESS,
                   error: "nil",
                   reason: "",
-                  gasLimit: txn.gasLimit,
-                  gasPrice: txn.gasPrice,
+                  gasLimit: transaction.gasLimit,
+                  gasPrice: transaction.gasPrice,
                   timestamp: String(new Date().getTime()),
                 });
               }
@@ -514,8 +519,14 @@ const tokenTransaction = async () => {
         }
 
         // UPDATE SENDER / RECEIVERS TOKEN BALANCE
-        senderBalance = await token.balanceOf(txn.from).call();
-        receiverBalance = await token.balanceOf(extractedEvent.to).call();
+        senderBalance = await ethers.utils.formatUnits(
+          await token.balanceOf(txn.from),
+          token_decimal
+        );
+        receiverBalance = await ethers.utils.formatUnits(
+          await token.balanceOf(extractedEvent.to),
+          token_decimal
+        );
 
         let sender = await walletsModel
           .findOne({ "bnb.address": txn.from })
@@ -559,12 +570,15 @@ const tokenTransaction = async () => {
           }
         }
 
-        if (txFromDb != null) {
-        }
+        // if (txFromDb != null) {
+        // }
 
         if (user != null) {
-          let balance = await token.balanceOf(extractedEvent.to).call();
-
+          let balance = await ethers.utils.formatUnits(
+            await token.balanceOf(extractedEvent.to),
+            token_decimal
+          );
+          
           await walletsModel.updateOne(
             { email: user.email },
             {
