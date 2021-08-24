@@ -160,7 +160,7 @@ const checkBlocks = async () => {
             coinTransaction();
           } else if (contracts.indexOf(txn.to) >= 0) {
             //TOKEN TRANSACTIONS
-            console.log("TASSA",txn);
+            console.log("TASSA", txn);
             pendingTokenTransactions.push(txn);
 
             // ADD TOKEN TRANSACTION
@@ -383,7 +383,7 @@ const tokenTransaction = async () => {
         pendingTokenTransactions[0].hash
       );
 
-      let transaction = pendingTokenTransactions[0]; 
+      let transaction = pendingTokenTransactions[0];
 
       // console.log("CURRENT TRANSACTION::", txn);
 
@@ -392,7 +392,7 @@ const tokenTransaction = async () => {
         txn.to = await ethers.utils.getAddress(txn.to);
         txn.hash = txn.transactionHash;
 
-        console.log(":: TRANSACTION HASH :: ", txn.hash,"\n");
+        console.log(":: TRANSACTION HASH :: ", txn.hash, "\n");
 
         let events = abiDecoder.decodeLogs(txn.logs);
 
@@ -423,8 +423,14 @@ const tokenTransaction = async () => {
               extractedEvent[param.name] = param.value;
             });
 
+            console.log("Extracted Event", extractedEvent);
+
             extractedEvent.to = await ethers.utils.getAddress(
               extractedEvent.to
+            );
+
+            extractedEvent.from = await ethers.utils.getAddress(
+              extractedEvent.from
             );
 
             user = await walletsModel
@@ -432,15 +438,18 @@ const tokenTransaction = async () => {
               .lean()
               .exec();
 
+            console.log("USER", txFromDb == null, user != null);
+
             if (txFromDb == null) {
+              // EXTERNAL TOKEN TRANSACTIONS
               if (user != null) {
                 await transactionsModel.create({
                   email: user.email,
                   ref: "",
                   from: extractedEvent.from,
                   to: extractedEvent.to,
-                  source: token_symbol,
-                  target: token_symbol,
+                  source: token_symbol.toLowerCase(),
+                  target: token_symbol.toLowerCase(),
                   sourceAmount: await ethers.utils.formatUnits(
                     extractedEvent.value,
                     token_decimal
@@ -454,7 +463,41 @@ const tokenTransaction = async () => {
                     token_decimal
                   ),
                   type: "received",
-                  currency: token_symbol,
+                  currency: token_symbol.toLowerCase(),
+                  error: "nil",
+                  hash: txn.hash,
+                  status: constants.TXNS.SUCCESS,
+                  error: "nil",
+                  reason: "",
+                  gasLimit: transaction.gasLimit,
+                  gasPrice: transaction.gasPrice,
+                  timestamp: String(new Date().getTime()),
+                });
+              }
+            } else if (txFromDb != null) {
+              // INTERNAL TOKEN TRANSACTION [USER->USER]
+              if (user != null) {
+                await transactionsModel.create({
+                  email: user.email,
+                  ref: "",
+                  from: extractedEvent.from,
+                  to: extractedEvent.to,
+                  source: token_symbol.toLowerCase(),
+                  target: token_symbol.toLowerCase(),
+                  sourceAmount: await ethers.utils.formatUnits(
+                    extractedEvent.value,
+                    token_decimal
+                  ),
+                  targetAmount: await ethers.utils.formatUnits(
+                    extractedEvent.value,
+                    token_decimal
+                  ),
+                  value: await ethers.utils.formatUnits(
+                    extractedEvent.value,
+                    token_decimal
+                  ),
+                  type: "received",
+                  currency: token_symbol.toLowerCase(),
                   error: "nil",
                   hash: txn.hash,
                   status: constants.TXNS.SUCCESS,
@@ -477,7 +520,10 @@ const tokenTransaction = async () => {
           .lean()
           .exec();
 
+        console.log("RECEIVER", receiver);
+
         if (receiver != null) {
+          // INTERNAL WALLET TRANSACTIONS [NEW]
           receiverTxnCheck = await transactionsModel
             .findOne({
               $and: [
@@ -485,10 +531,10 @@ const tokenTransaction = async () => {
                   hash: txn.hash,
                 },
                 {
-                  to: extractedEvent.to,
+                  type: "send",
                 },
                 {
-                  email: receiver.email,
+                  to: extractedEvent.to,
                 },
               ],
             })
@@ -573,21 +619,21 @@ const tokenTransaction = async () => {
         // if (txFromDb != null) {
         // }
 
-        if (user != null) {
-          let balance = await ethers.utils.formatUnits(
-            await token.balanceOf(extractedEvent.to),
-            token_decimal
-          );
-          
-          await walletsModel.updateOne(
-            { email: user.email },
-            {
-              $set: {
-                [`${token_symbol.toLowerCase()}.balance`]: balance,
-              },
-            }
-          );
-        }
+        // if (user != null) {
+        //   let balance = await ethers.utils.formatUnits(
+        //     await token.balanceOf(extractedEvent.to),
+        //     token_decimal
+        //   );
+
+        //   await walletsModel.updateOne(
+        //     { email: user.email },
+        //     {
+        //       $set: {
+        //         [`${token_symbol.toLowerCase()}.balance`]: balance,
+        //       },
+        //     }
+        //   );
+        // }
 
         pendingTokenTransactions.shift();
       } else {

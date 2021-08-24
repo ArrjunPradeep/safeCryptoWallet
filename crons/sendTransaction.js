@@ -24,7 +24,7 @@ const initializeWeb3 = async() => {
 
 const getWallet = async(ref) => {
 
-    let privateKey = await (await wallet_library.generateEthereumAddress(ref,true)).privateKey;
+    let privateKey = await (await wallet_library.generateAddress(ref,true)).privateKey;
     console.log("PRIVATE KEY :: ", privateKey);
     return privateKey;
 
@@ -142,13 +142,13 @@ const sendToken = async(txn) => {
     
         const contract = new ethers.Contract(contractAddress, contract_abi, walletSigner);
     
-        // const contract_balance = (await erc20.balanceOf(wallet.address)).toString();
+        // const contract_balance = (await contract.balanceOf(wallet.address)).toString();
     
         const contract_decimal = await contract.decimals();
         
         let token_amount = await ethers.utils.parseUnits(txn.sourceAmount, contract_decimal);
     
-        console.log("ERC20::",token_amount);
+        console.log("TOKEN::",token_amount);
     
         await contract.transfer(txn.to, token_amount).then(async(transaction) => {
             
@@ -162,7 +162,7 @@ const sendToken = async(txn) => {
 
     } catch (error) {
 
-        console.log("SEND ERC20 :: ", error.reason);
+        console.log("SEND TOKEN :: ", error.reason);
 
         let status = "failed";
 
@@ -201,8 +201,8 @@ const updateTxnStatus = async(id, from, status, hash, message) => {
 
 }
 
-// sendERC20()
-// sendEth()
+// sendToken()
+// sendCoin()
 
 module.exports = {
     initiateTransaction
