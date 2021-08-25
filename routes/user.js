@@ -1,24 +1,22 @@
 const express = require("express");
 const router = express.Router();
 const ethereum_lib = require("../lib/crypto/ethereum");
-const ethers = require("ethers");
 const jwt_lib = require("../lib/server/jwt");
 const cache_lib = require("../lib/server/cache");
 const bcrypt_lib = require("../lib/server/bcrypt");
 const accountsModel = require("../models/accounts");
 const walletsModel = require("../models/wallets");
 const transactionsModel = require("../models/transactions");
-const settingsModel = require("../models/settings");
 const constants = require("../constants/constants");
-var provider;
 
-// - api key only
+// MIDDLEWARE API-KEY AUTHENTICATION
+router.use(jwt_lib.router);
 
 // ACTIVATE ACCOUNT
 router.post("/activateAccount", async (req, res, next) => {
   try {
 
-    let token = await jwt_lib.generateToken();
+    let token = "srfsdgf";
 
     return res.status(200).send({
       status: true,
@@ -69,10 +67,8 @@ router.get("/createWallet", async (req, res, next) => {
   }
 });
 
-// MIDDLEWARE TOKEN AUTHENTICATION
-// router.use(jwt_lib.router);
-
-router.get("/send", async (req, res, next) => {
+// SEND COIN & TOKEN 
+router.post("/send", async (req, res, next) => {
   try {
 
     let { email, crypto, receiver, amount } = req.body;
@@ -143,7 +139,7 @@ router.get("/send", async (req, res, next) => {
       status: false,
     });
   }
-});
+})
 
 // RETREIVE TRANSACTION HISTORY
 router.get("/transactionHistory", async(req,res) => {
@@ -185,7 +181,7 @@ router.get("/transactionHistory", async(req,res) => {
 
   } catch (error) {
     
-    console.log("::TRANSACTION FEE::ERROR::",error);
+    console.log("::TRANSACTION HISTORY::ERROR::",error);
     return res.status(500).send({
       status: false,
       message: "Internal Server Error"
@@ -195,6 +191,34 @@ router.get("/transactionHistory", async(req,res) => {
 
 })
 
+// RETREIVE USER DETAILS
+router.get("/user", async ( req, res, next) => {
+
+  try {
+
+    let { email } = req.query;
+
+    console.log("QUERY::", email);
+
+    let user = await walletsModel.findOne({email:email},{_id:0,id:0,__v:0}).lean().exec();
+    
+    return res.status(200).send({
+      status:true,
+      message:user
+    })
+
+  } catch (error) {
+    
+    console.log("::USER::ERROR::", error);
+
+    return res.status(500).send({
+      status:false,
+      message:"Internal Server Error"
+    })
+
+  }
+
+})
 
 // CREATE CRYPTO ADDRESSESS FOR NEW USERS
 const createWallet = async (email, userData) => {
@@ -302,7 +326,5 @@ const isExternalAddress = async(crypto, address) => {
   }
 
 } 
-
-// isExternalAddress("BNB","0xEc51E8E9ac545281794AF5488b348CA9b62b1059");
 
 module.exports = router;
