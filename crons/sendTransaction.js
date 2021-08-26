@@ -88,14 +88,16 @@ const sendCoin = async(txn) => {
         
         // console.log("GAS LIMIT :: ",gasLimit);
 
+        console.log("21312312",ethers.BigNumber.from(txn.gasLimit));
+
         const tx = 
         {
             from : wallet.address,
             to : txn.to,
             value : ethers.utils.parseEther(txn.sourceAmount),
             nonce : provider.getTransactionCount(wallet.address, 'latest'),
-            // gasLimit : ethers.utils.parseEther(txn.gasLimit), //provider.estimateGas(), //ethers.utils.hexlify('100000'), // 100000
-            // gasPrice : ethers.utils.parseEther(txn.gasPrice) //provider.getGasPrice()
+            // gasLimit : ethers.BigNumber.from(txn.gasLimit), // ethers.utils.parseEther(txn.gasLimit), //provider.estimateGas(), //ethers.utils.hexlify('100000'), // 100000
+            // gasPrice : ethers.BigNumber.from(txn.gasPrice) //provider.getGasPrice()
         }        
 
 
