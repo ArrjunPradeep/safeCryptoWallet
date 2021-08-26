@@ -12,7 +12,7 @@ const constants = require("../constants/constants");
 const initializeWeb3 = async() => {
     try {
        
-        var url = config.wallet.bprovider;
+        var url = config.wallet.provider;
         provider = new ethers.providers.JsonRpcProvider(url);
         // console.log("PROVIDER::",provider);
 
@@ -201,17 +201,6 @@ const updateTxnStatus = async(id, from, status, hash, message) => {
 
 }
 
-// sendToken()
-// sendCoin()
-
 module.exports = {
     initiateTransaction
 }
-
-//  catch (error) {
-//     console.log("ERROR:", error)
-//     res.status(500).send({
-//       status: "Fail",
-//       error: JSON.parse(CircularJSON.stringify(error.response.data.message))
-//     })
-//   }

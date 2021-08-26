@@ -7,6 +7,7 @@ let abiDecoder = require("abi-decoder");
 abiDecoder.addABI(contract_abi);
 const walletsModel = require("../models/wallets");
 const transactionsModel = require("../models/transactions");
+const tokensModel = require("../models/tokens");
 
 mongoose
   .connect(
@@ -26,10 +27,7 @@ mongoose
   });
 
 // WEBSOCKET URL
-// var url = "wss://ropsten.infura.io/ws/v3/a478bf40f7b24494b30b082c0d225104";
-var url =
-  "wss://bsc.getblock.io/testnet/?api_key=7f919aac-9d46-49f6-8dc9-453d3a9471a6";
-// c3c3dca1-f735-4463-9b14-f108b37f942a";
+var url = config.wallet.websocket; 
 
 // PROVIDER
 var provider = new ethers.providers.WebSocketProvider(url);
@@ -40,15 +38,17 @@ let blocksToCheck = [];
 let latestBlock;
 let lastCheckedBlock;
 let initialBlock =
-  config.receiveCron.initialBlock == "0"
+  config.wallet.initialBlock == "0"
     ? "latest"
-    : config.receiveCron.initialBlock;
+    : config.wallet.initialBlock;
 let isRunning = false;
 let contracts = [];
 var isTokenrunning = false;
 
 var init = async () => {
-  let contractData = config.wallet.contracts;
+
+  let contractData = await tokensModel.find({}).lean().exec();
+
   contractData.forEach((_contractData) => {
     contracts.push(_contractData.address);
   });
@@ -220,20 +220,6 @@ const checkBlocks = async () => {
                   },
                 }
               );
-
-              // if (contracts.indexOf(txn.to) == -1) {
-              //   let receiverWallet = await walletsModel
-              //     .findOne({ "bnb.address": txn.to })
-              //     .lean()
-              //     .exec();
-
-              //   //hotfix  - But it'll work
-              //   if (receiverWallet != null) {
-              //     receiver = receiverWallet.email;
-              //   } else {
-              //     receiver = txn.to;
-              //   }
-              // }
             }
           }
         });
@@ -692,5 +678,3 @@ const isInternalTransaction = async (hash) => {
     return;
   }
 };
-
-// init();
