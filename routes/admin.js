@@ -23,12 +23,15 @@ router.post('/addToken', async(req, res, next) => {
 
     let isAddress = await tokensModel.findOne({address:address}).lean().exec();
 
+    let token = await ethereum_lib.tokenDecimal(address);
+
     if(isAddress == null) {
 
       await tokensModel.create({
         name: name,
         symbol: symbol,
         address: address,
+        decimal: token.decimal,
         blockchain: blockchain
       })
   

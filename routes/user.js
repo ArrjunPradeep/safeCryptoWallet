@@ -6,6 +6,7 @@ const cache_lib = require("../lib/server/cache");
 const bcrypt_lib = require("../lib/server/bcrypt");
 const accountsModel = require("../models/accounts");
 const walletsModel = require("../models/wallets");
+const tokensModel = require("../models/tokens");
 const transactionsModel = require("../models/transactions");
 const constants = require("../constants/constants");
 
@@ -73,31 +74,34 @@ router.post("/send", async (req, res, next) => {
 
     let { email, crypto, receiver, amount } = req.body;
 
-    let walletInfo = await walletsModel.findOne({email:email}).lean().exec();
+    let promises = await Promise.all([
+      walletsModel.findOne({email:email}).lean().exec(),
+      tokensModel.findOne({symbol:crypto}).lean().exec()
+    ])
 
-    let address = walletInfo[crypto.toLowerCase()].address;
+    if(promises[1] == null && crypto != 'BNB') {
 
-    let balance = walletInfo[crypto.toLowerCase()].balance;
+      return res.status(401).send({
+        status:false,
+        message:"Invalid Token"
+      })
 
-    console.log("walel",address,crypto,balance)
+    }
 
-    // let balance = await ethereum_lib.checkBalance( crypto, address);
+    let balance = promises[0][crypto.toLowerCase()].balance;
+
     let checkBalance = await ethereum_lib.checkBalance(
       email,
       crypto,
       balance,
-      address,
-      receiver,
       amount
     );
     
-    console.log("asfd",checkBalance)
-
     if(checkBalance.status) {
      
       await transactionsModel.create({
         email: email,
-        ref: walletInfo.id,
+        ref: promises[0].id,
         from: email,
         to: receiver,
         source: crypto.toLowerCase(),
