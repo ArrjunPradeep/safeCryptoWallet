@@ -145,6 +145,65 @@ router.post("/send", async (req, res, next) => {
   }
 })
 
+// VALIDATE THE TRANSACTION 
+router.post("/validateTransaction", async(req, res, next) => {
+
+  try {
+    
+    let { email, crypto, amount } = req.body;
+
+    let promises = await Promise.all([
+      walletsModel.findOne({email:email}).lean().exec(),
+      tokensModel.findOne({symbol:crypto}).lean().exec()
+    ])
+
+    if(promises[1] == null && crypto != 'BNB') {
+
+      return res.status(401).send({
+        status:false,
+        message:"Invalid Token"
+      })
+
+    }
+
+    let balance = promises[0][crypto.toLowerCase()].balance;
+
+    let checkBalance = await ethereum_lib.validateTransaction(
+      crypto,
+      balance,
+      amount
+    );
+    
+    if(checkBalance.status) {
+     
+      return res.status(200).send({
+        status: true,
+        message: "CONFIRM"
+      });
+
+    }
+    else {
+
+      return res.status(400).send({
+        status: false,
+        message: "INSUFFICIENT BALANCE"
+      });
+
+    }
+
+  } catch (error) {
+    
+    console.log(":: ERROR ::", error);
+
+    return res.status(500).send({
+      status:false,
+      message:"Internal Server Error"
+    })
+
+  }
+
+})
+
 // RETREIVE TRANSACTION HISTORY
 router.get("/transactionHistory", async(req,res) => {
 

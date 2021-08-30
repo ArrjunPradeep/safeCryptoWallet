@@ -23,7 +23,8 @@ mongoose
       config.db.dbName
   )
   .then(async () => {
-    init();
+    // init();
+    startConnection();
   });
 
 // WEBSOCKET URL
@@ -38,66 +39,83 @@ let blocksToCheck = [];
 let latestBlock;
 let lastCheckedBlock;
 let initialBlock =
-  config.wallet.initialBlock == "0"
+  config.wallet.initialBlock == '0'
     ? "latest"
     : config.wallet.initialBlock;
 let isRunning = false;
 let contracts = [];
 var isTokenrunning = false;
 
-var init = async () => {
+const EXPECTED_PONG_BACK = 15000
+const KEEP_ALIVE_CHECK_INTERVAL = 6000 //7500
 
-  let contractData = await tokensModel.find({}).lean().exec();
+const startConnection = async() => {
+  provider = new ethers.providers.WebSocketProvider(url)
 
-  contractData.forEach((_contractData) => {
-    contracts.push(_contractData.address);
-  });
+  let pingTimeout = null
+  let keepAliveInterval = null
 
-  // EVENT LISTENING WHEN NEW BLOCKS MINED
-  provider.on("block", async (tx) => {
-    if (latestBlock == undefined) {
-      latestBlock = await provider.getBlock(initialBlock);
-      console.log(":: LATEST BLOCK :: ", latestBlock.number);
-      blocksToCheck.push(latestBlock);
-      lastCheckedBlock = latestBlock.number - 1;
-    }
+  provider._websocket.on('open', async() => {
 
-    latestBlock = await provider.getBlock(Number(latestBlock.number) + 1);
+    keepAliveInterval = setInterval(() => {
+      console.log(':: CHECKING IF CONNECTION IS ALIVE, SENDING A PING');
 
-    if (latestBlock == null) {
-      latestBlock = await provider.getBlock(lastCheckedBlock);
-      console.log(":: PREVIOUS BLOCK :: ", latestBlock.number);
-    } else {
-      console.log(":: LATEST PENDING BLOCK :: ", latestBlock.number);
-      blocksToCheck.push(latestBlock);
-      checkBlocks();
-    }
-    // provider.getTransaction(tx).then(function (transaction) {
-    //   console.log(transaction);
-    // });
-  });
+      provider._websocket.ping();
 
-  // setInterval(() => {
-  //   if (isRunning == false) {
-  //     checkBlocks();
-  //   }
-  // }, 15000);
+      // Use `WebSocket#terminate()`, which immediately destroys the connection,
+      // instead of `WebSocket#close()`, which waits for the close timer.
+      // Delay should be equal to the interval at which your server
+      // sends out pings plus a conservative assumption of the latency.
+      pingTimeout = setTimeout(() => {
+        provider._websocket.terminate()
+      }, EXPECTED_PONG_BACK)
+    }, KEEP_ALIVE_CHECK_INTERVAL)
 
-  // const wait = (timeToDelay) => new Promise((resolve) => setTimeout(resolve, timeToDelay));
+    // TODO: handle contract listeners setup + indexing
+    let contractData = await tokensModel.find({}).lean().exec();
 
-  provider._websocket.on("error", async () => {
-    console.log(`Unable to connect to ${ep.subdomain} retrying in 3s...`);
-    setTimeout(init, 3000);
-  });
+    contractData.forEach((_contractData) => {
+      contracts.push(_contractData.address);
+    });
+    // EVENT LISTENING WHEN NEW BLOCKS MINED
+    provider.on("block", async (tx) => {
+  
+      if (latestBlock == undefined) {
+        latestBlock = await provider.getBlock(initialBlock);
+        console.log(":: LATEST BLOCK :: ", latestBlock.number);
+        blocksToCheck.push(latestBlock);
+        lastCheckedBlock = latestBlock.number - 1;
+      }
+  
+      latestBlock = await provider.getBlock(Number(latestBlock.number) + 1);
+  
+      if (latestBlock == null) {
+        latestBlock = await provider.getBlock(lastCheckedBlock);
+        console.log(":: PREVIOUS BLOCK :: ", latestBlock.number);
+      } else {
+        console.log(":: LATEST PENDING BLOCK :: ", latestBlock.number);
+        blocksToCheck.push(latestBlock);
+        checkBlocks();
+      }
+      // provider.getTransaction(tx).then(function (transaction) {
+      //   console.log(transaction);
+      // });
+    });
+    // TODO
+  })
 
-  provider._websocket.on("close", async (code) => {
-    console.log(
-      `Connection lost with code ${code}! Attempting reconnect in 3s...`
-    );
-    provider._websocket.terminate();
-    setTimeout(init, 3000);
-  });
-};
+  provider._websocket.on('close', () => {
+    console.log(':: WEBSOCKET CONNECTION LOST :: RECONNECTING ::');
+    clearInterval(keepAliveInterval);
+    clearTimeout(pingTimeout);
+    startConnection();
+  })
+
+  provider._websocket.on('pong', () => {
+    console.log(':: RECEIVED PONG, SO CONNECTION IS ALIVE, CLEARING TIMEOUT ::');
+    clearInterval(pingTimeout);
+  })
+}
 
 const checkBlocks = async () => {
   try {
@@ -205,6 +223,9 @@ const checkBlocks = async () => {
                   $set: {
                     status: status,
                     from: txn.from,
+                    gasPrice:txn.gasPrice,
+                    gasLimit:txn.gasLimit,
+                    fee: Number((txn.gasLimit)*(await ethers.utils.formatEther(txn.gasPrice))),
                   },
                 }
               );
@@ -327,6 +348,7 @@ const coinTransaction = async () => {
             reason: "",
             gasLimit: txn.gasLimit,
             gasPrice: txn.gasPrice,
+            fee: Number((txn.gasLimit)*(await ethers.utils.formatEther(txn.gasPrice))),
             timestamp: String(new Date().getTime()),
           });
 
@@ -457,6 +479,7 @@ const tokenTransaction = async () => {
                   reason: "",
                   gasLimit: transaction.gasLimit,
                   gasPrice: transaction.gasPrice,
+                  fee: Number((transaction.gasLimit)*(await ethers.utils.formatEther(transaction.gasPrice))),
                   timestamp: String(new Date().getTime()),
                 });
               }
@@ -491,6 +514,7 @@ const tokenTransaction = async () => {
                   reason: "",
                   gasLimit: transaction.gasLimit,
                   gasPrice: transaction.gasPrice,
+                  fee: Number((transaction.gasLimit)*(await ethers.utils.formatEther(transaction.gasPrice))),
                   timestamp: String(new Date().getTime()),
                 });
               }
@@ -677,4 +701,58 @@ const isInternalTransaction = async (hash) => {
     console.log(":: IS INTERNAL TRANSACTION ERROR :: ", error);
     return;
   }
+};
+
+
+var init = async () => {
+  let contractData = await tokensModel.find({}).lean().exec();
+
+  contractData.forEach((_contractData) => {
+    contracts.push(_contractData.address);
+  });
+  // EVENT LISTENING WHEN NEW BLOCKS MINED
+  provider.on("block", async (tx) => {
+
+    if (latestBlock == undefined) {
+      latestBlock = await provider.getBlock(initialBlock);
+      console.log(":: LATEST BLOCK :: ", latestBlock.number);
+      blocksToCheck.push(latestBlock);
+      lastCheckedBlock = latestBlock.number - 1;
+    }
+
+    latestBlock = await provider.getBlock(Number(latestBlock.number) + 1);
+
+    if (latestBlock == null) {
+      latestBlock = await provider.getBlock(lastCheckedBlock);
+      console.log(":: PREVIOUS BLOCK :: ", latestBlock.number);
+    } else {
+      console.log(":: LATEST PENDING BLOCK :: ", latestBlock.number);
+      blocksToCheck.push(latestBlock);
+      checkBlocks();
+    }
+    // provider.getTransaction(tx).then(function (transaction) {
+    //   console.log(transaction);
+    // });
+  });
+
+  // setInterval(() => {
+  //   if (isRunning == false) {
+  //     checkBlocks();
+  //   }
+  // }, 15000);
+
+  // const wait = (timeToDelay) => new Promise((resolve) => setTimeout(resolve, timeToDelay));
+
+  provider._websocket.on("error", async () => {
+    console.log(`Unable to connect to ${ep.subdomain} retrying in 3s...`);
+    setTimeout(init, 3000);
+  });
+
+  provider._websocket.on("close", async (code) => {
+    console.log(
+      `Connection lost with code ${code}! Attempting reconnect in 3s...`
+    );
+    provider._websocket.terminate();
+    setTimeout(init, 3000);
+  });
 };
