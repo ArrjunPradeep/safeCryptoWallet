@@ -35,12 +35,12 @@ const validate = (routeName) => {
         header("x-api-key").exists().equals(config.wallet.apiKey),
         body("email").exists().isString().notEmpty().isEmail(),
         body("crypto").exists().isString().notEmpty(),
+        body("receiver").exists().isString().notEmpty(),
         body("amount").exists().isString().notEmpty(),
       ];
     case "transactionHistory":
       return [
         header("x-api-key").exists().equals(config.wallet.apiKey),
-        header("x-api-key").exists(),
         query("email").exists().isString().notEmpty().isEmail(),
       ];
     case "user":
@@ -83,7 +83,7 @@ router.post(
           message: "success",
         });
       } else {
-        return res.status(400).send({
+        return res.status(401).send({
           status: false,
           message: wallet_data.message,
         });
@@ -161,7 +161,7 @@ router.post("/send", validate("send"), async (req, res, next) => {
         message: "Transaction Initiated",
       });
     } else {
-      return res.status(400).send({
+      return res.status(401).send({
         status: false,
         message: "Insufficient Balance",
       });
@@ -192,7 +192,16 @@ router.post(
         return;
       }
 
-      let { email, crypto, amount } = req.body;
+      let { email, crypto, amount, receiver } = req.body;
+
+      if(await ethereum_lib.isAddressValid(receiver) == false) {
+
+        return res.status(401).send({
+          status:false,
+          message:"Invalid Address"
+        })
+  
+      }
 
       let promises = await Promise.all([
         walletsModel.findOne({ email: email }).lean().exec(),
@@ -220,7 +229,7 @@ router.post(
           message: "CONFIRM",
         });
       } else {
-        return res.status(400).send({
+        return res.status(401).send({
           status: false,
           message: "INSUFFICIENT BALANCE",
         });
@@ -308,7 +317,7 @@ router.get(
 );
 
 // RETREIVE USER DETAILS
-router.get("/user", async (req, res, next) => {
+router.get("/user", validate("user"), async (req, res, next) => {
   try {
     let { email } = req.query;
 
@@ -319,10 +328,19 @@ router.get("/user", async (req, res, next) => {
       .lean()
       .exec();
 
-    return res.status(200).send({
-      status: true,
-      message: user,
-    });
+    if(user != null) {
+      return res.status(200).send({
+        status: true,
+        message: user,
+      });
+    } else {
+      return res.status(401).send({
+        status: false,
+        message: user
+      });
+    }
+
+
   } catch (error) {
     console.log("::USER::ERROR::", error);
 

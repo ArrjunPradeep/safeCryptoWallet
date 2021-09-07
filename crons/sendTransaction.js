@@ -6,7 +6,7 @@ const config = require("../config/config");
 const transactionsModel = require("../models/transactions");
 const walletsModel = require("../models/wallets");
 const accountsModel = require("../models/accounts");
-const settingsModel = require("../models/settings");
+const tokensModel = require("../models/tokens");
 const constants = require("../constants/constants");
 
 const initializeWeb3 = async() => {
@@ -25,7 +25,7 @@ const initializeWeb3 = async() => {
 const getWallet = async(ref) => {
 
     let privateKey = await (await wallet_library.generateAddress(ref,true)).privateKey;
-    console.log("PRIVATE KEY :: ", privateKey);
+    // console.log("PRIVATE KEY :: ", privateKey);
     return privateKey;
 
 }
@@ -132,7 +132,7 @@ const sendToken = async(txn) => {
 
         let account = await accountsModel.findOne({email:txn.email}).lean().exec();
     
-        let settings = await settingsModel.findOne({}).lean().exec();
+        let tokens = await tokensModel.findOne({symbol:(txn.source).toUpperCase()}).lean().exec();
     
         let wallet = new ethers.Wallet(await getWallet(account.ref),provider);
         console.log("WALLET ::",wallet.address);
@@ -140,7 +140,7 @@ const sendToken = async(txn) => {
         let walletSigner = wallet.connect(provider);
         console.log("SIGNER ::",walletSigner.address);
     
-        let contractAddress = settings.contract[`${(txn.source).toUpperCase()}`];
+        let contractAddress = tokens.address;
     
         const contract = new ethers.Contract(contractAddress, contract_abi, walletSigner);
     
