@@ -126,14 +126,23 @@ db.getCollectionNames()
     npm install pm2@latest -g
 ```
 
-**Step 7:** Execute the crons :
+**Step 7:** Load environment variables from **.env** file
+```
+MNEMONIC=""
+PASSPHRASE=""
+API_KEY=""
+PROVIDER=""
+WEBSOCKET_URL=""
+```
+
+**Step 8:** Execute the crons :
 
 ```
 pm2 start crons/startSendCrypto.js --name sendCron
 pm2 start crons/receiveTransaction.js --name receiveCron
 ```
 
-**Step 8:** Start the Application :
+**Step 9:** Start the Application :
 
 ```
  pm2 start bin/www --name wallet
