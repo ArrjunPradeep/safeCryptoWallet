@@ -184,8 +184,8 @@ Query Parameters :
    <p align="left">
    <a href="https://ibb.co/nwgkRNF"><img src="https://i.ibb.co/JcBkCw9/transaction.png" alt="transaction" border="0"></a>
 </p>
-```
 
+```
 Query Parameters :
 
 -> email : String
@@ -196,8 +196,8 @@ Query Parameters :
 
    <p align="left">
 <a href="https://ibb.co/F3ybPpc"><img src="https://i.ibb.co/DWvDqdm/validate.png" alt="validate" border="0"></a></p>
-```
 
+```
 Body Parameters :
 
 -> email : String
@@ -211,11 +211,12 @@ Body Parameters :
    <p align="left">
 <a href="https://ibb.co/KL95rg8"><img src="https://i.ibb.co/RBCgDKJ/send.png" alt="send" border="0"></a>
 </p>
-```
 
+```
 Body Parameters :
 
 -> email : String
 -> crypto : String // 'BNB' or 'BOBE'
 -> receiver : String
 -> amount : String
+```
