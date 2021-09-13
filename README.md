@@ -204,6 +204,7 @@ Body Parameters :
 
 -> email : String
 -> crypto : String // 'BNB' or 'BOBE'
+-> receiver : String
 -> amount : String
 
 ```
