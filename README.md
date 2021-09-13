@@ -156,6 +156,7 @@ pm2 start crons/receiveTransaction.js --name receiveCron
 
    <p align="left">
 <a href="https://ibb.co/q9d3KBk"><img src="https://i.ibb.co/rMmRYk4/create-Wallet.png" alt="create-Wallet" border="0"></a></p>
+
 ```
 Body Parameters :
 
@@ -170,8 +171,8 @@ Body Parameters :
    <p align="left">
 <a href="https://ibb.co/j4x6fLq"><img src="https://i.ibb.co/WKdx5c7/user.png" alt="user" border="0"></a>
 </p>
-```
 
+```
 Query Parameters :
 
 -> email : String
