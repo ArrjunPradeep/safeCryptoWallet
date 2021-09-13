@@ -152,6 +152,8 @@ pm2 start crons/receiveTransaction.js --name receiveCron
 
 **POSTMAN Collections : https://www.getpostman.com/collections/08bb2c99add9ecf65a47**
 
+**For every API call, Need to ser "x-api-key" in the header**
+
 **Create wallet account for a user [/createWallet] [POST]:**
 
    <p align="left">
