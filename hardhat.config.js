@@ -1,4 +1,5 @@
 require('@nomiclabs/hardhat-waffle');
+require("@nomiclabs/hardhat-etherscan");
 require('dotenv').config();
 
 // npx hardhat verify --network ropsten 0x5FbDB2315678afecb367f032d93F642f64180aa3 "Success" "SCS" 18
@@ -20,5 +21,8 @@ module.exports = {
       chainId: 97,
       accounts:[`0x${PRIVATE_KEY}`]
     },
+  },
+  etherscan: {
+    apiKey: process.env.BNB_API_KEY
   }
 };
