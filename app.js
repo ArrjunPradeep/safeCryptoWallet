@@ -31,6 +31,7 @@ mongoose.connect(
 
 const userRouter = require("./routes/user");
 const adminRouter = require("./routes/admin");
+const nftRouter = require("./routes/nft");
 
 const app = express();
 
@@ -42,5 +43,6 @@ app.use(express.static(path.join(__dirname, "public")));
 
 app.use("/", userRouter);
 app.use("/admin", adminRouter);
+app.use("/nft", nftRouter);
 
 module.exports = app;
