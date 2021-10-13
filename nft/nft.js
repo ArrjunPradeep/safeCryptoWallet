@@ -4,11 +4,12 @@ const { create } = require("ipfs-http-client");
 const tokenABI = require("../artifacts/contracts/NFT.sol/NFT.json").abi;
 const marketABI =
   require("../artifacts/contracts/NFTMarket.sol/NFTMarket.json").abi;
+const config = require('../config/config');
 
 var client, provider, tokenContract, marketContract, signerAddress;
 
-const tokenContractAddress = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
-const marketContractAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+const tokenContractAddress = "0xD4F18596128f134ff64B7974FFD82fD626132127" //"0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
+const marketContractAddress = "0x1A842e10cddc551E943B1bfc3F9E0B733Eb669Dd" //"0x5FbDB2315678afecb367f032d93F642f64180aa3";
 
 // INITIALIZE IPFS
 const initializeIPFS = async () => {
@@ -78,7 +79,8 @@ const uploadFileToIPFS = async (file, name, description) => {
 // INTITIALIZE WEB3
 const initializeWeb3 = async (signer) => {
   try {
-    provider = new ethers.providers.JsonRpcProvider();
+    var url = config.wallet.provider; //""
+    provider = new ethers.providers.JsonRpcProvider(url);
   } catch (error) {
     console.log(":: INITIALIZE_WEB3 :: ERROR :: \n", error);
     return;
@@ -115,7 +117,7 @@ const initializeMarketContract = async (signer) => {
 const initializeSigner = async (privateKey) => {
   try {
     let wallet = new ethers.Wallet(
-      "0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a", //"0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d",
+      "0b2df94bc3c969ea06d2e014053c940fdad8b4e63da05b169b4912db0e2ca25e",//"0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a", //"0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d",
       provider
     );
     // console.log("WALLET ::", wallet.address);
