@@ -127,6 +127,7 @@ db.getCollectionNames()
 ```
 
 **Step 7:** Load environment variables from **.env** file
+
 ```
 MNEMONIC=""
 PASSPHRASE=""
@@ -157,7 +158,7 @@ pm2 start crons/receiveTransaction.js --name receiveCron
 **Create wallet account for a user [/createWallet] [POST]:**
 
    <p align="left">
-<a href="https://ibb.co/q9d3KBk"><img src="https://i.ibb.co/rMmRYk4/create-Wallet.png" alt="create-Wallet" border="0"></a></p>
+<a href="https://ibb.co/ZgYbRTh"><img src="https://i.ibb.co/fNnTV0C/create-Wallet.png" alt="create-Wallet" border="0"></a></p>
 
 ```
 Body Parameters :
@@ -171,7 +172,7 @@ Body Parameters :
 **Retrieve account details of a user [/user] [GET]:**
 
    <p align="left">
-<a href="https://ibb.co/j4x6fLq"><img src="https://i.ibb.co/WKdx5c7/user.png" alt="user" border="0"></a>
+<a href="https://ibb.co/gF3M837"><img src="https://i.ibb.co/dJr0vrc/user.png" alt="user" border="0"></a>
 </p>
 
 ```
@@ -184,7 +185,7 @@ Query Parameters :
 **Retrieve transaction history w.r.t user [/transactionHistory] [GET]:**
 
    <p align="left">
-   <a href="https://ibb.co/nwgkRNF"><img src="https://i.ibb.co/JcBkCw9/transaction.png" alt="transaction" border="0"></a>
+<a href="https://ibb.co/X2bGhsQ"><img src="https://i.ibb.co/znrtyRM/transaction.png" alt="transaction" border="0"></a>
 </p>
 
 ```
@@ -197,7 +198,7 @@ Query Parameters :
 **Validate the transaction [/validateTransaction] [POST]:**
 
    <p align="left">
-<a href="https://ibb.co/F3ybPpc"><img src="https://i.ibb.co/DWvDqdm/validate.png" alt="validate" border="0"></a></p>
+<a href="https://ibb.co/N1yykG3"><img src="https://i.ibb.co/LQZZqsP/validate.png" alt="validate" border="0"></a></p>
 
 ```
 Body Parameters :
@@ -212,7 +213,7 @@ Body Parameters :
 **Crypto transaction [/send] [POST]:**
 
    <p align="left">
-<a href="https://ibb.co/KL95rg8"><img src="https://i.ibb.co/RBCgDKJ/send.png" alt="send" border="0"></a>
+<a href="https://ibb.co/X8DFNBd"><img src="https://i.ibb.co/ws7p3Hb/send.png" alt="send" border="0"></a>
 </p>
 
 ```
