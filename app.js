@@ -25,7 +25,7 @@ mongoose.connect(
 
 }).catch((error) => {
 
-    console.log("::::::: MONGODB NOT CONNECTED :::::::",error);
+    console.log("::::::: MONGODB NOT CONNECTED :::::::");
 
 })
 

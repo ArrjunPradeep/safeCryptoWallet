@@ -7,6 +7,7 @@ const body = require("express-validator").body;
 const header = require("express-validator").header;
 const query = require("express-validator").query;
 const validationResult = require("express-validator").validationResult;
+const cache = require('../lib/server/cache');
 
 // VALIDATION
 const validate = (routeName) => {
@@ -251,15 +252,39 @@ router.get("/metaData", validate("metaData"), async (req, res, next) => {
 
     const config = {
       method: "GET",
-      url: url,
+      url: url
     };
 
-    const response = await axios(config);
+    const metaData = await cache.getOrSetCache(url, async() => {
 
-    return res.status(200).send({
-      status: true,
-      message: response.data,
-    });
+      const { data } = await await axios(config);
+
+      return data;
+
+    })
+
+    const response = await axios(config);
+      return res.status(200).send({
+        status: true,
+        message: metaData
+      });
+
+    // let metaData = await cache.get(url);
+    // if (metaData) {
+    //   return res.status(200).send({
+    //     status: true,
+    //     message: metaData
+    //   });
+    // } else {
+    //   const response = await axios(config);
+    //   await cache.set(url,response.data);
+    //   return res.status(200).send({
+    //     status: true,
+    //     message: response.data
+    //   });
+    // }
+
+
   } catch (error) {
     console.log(":: METADATA :: ERROR ::", error);
 
