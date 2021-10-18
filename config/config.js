@@ -5,9 +5,9 @@ module.exports = {
     db: {
         host: "localhost",
         port: "27017",
-        userName: "bobe",
-        password: "bobe369",
-        dbName: "bobecoin"
+        userName: "wallet",
+        password: "wallet5",
+        dbName: "wallet"
     },
 
     token: {
