@@ -8,25 +8,27 @@ const header = require("express-validator").header;
 const query = require("express-validator").query;
 const validationResult = require("express-validator").validationResult;
 const cache = require('../lib/server/cache');
+const config = require("../config/config");
+const accountsModel = require("../models/accounts");
 
 // VALIDATION
 const validate = (routeName) => {
   switch (routeName) {
     case "createItem":
       return [
-        // header("x-api-key").exists().equals(config.wallet.apiKey),
+        header("x-api-key").exists().equals(config.wallet.apiKey),
         body("auctionPrice").exists().isString().notEmpty(),
         body("uri").exists().isString().notEmpty(),
       ];
     case "marketSale":
       return [
-        // header("x-api-key").exists().equals(config.wallet.apiKey),
+        header("x-api-key").exists().equals(config.wallet.apiKey),
         body("auctionPrice").exists().isString().notEmpty(),
         body("tokenId").exists().isString().notEmpty(),
       ];
     case "uploadFile":
       return [
-        // header("x-api-key").exists().equals(config.wallet.apiKey),
+        header("x-api-key").exists().equals(config.wallet.apiKey),
         body("file")
           .custom((value, { req }) => {
             if (!req.files) throw new Error("File is Required");
@@ -37,7 +39,7 @@ const validate = (routeName) => {
       ];
     case "metaData":
       return [
-        // header("x-api-key").exists().equals(config.wallet.apiKey),
+        header("x-api-key").exists().equals(config.wallet.apiKey),
         query("url").exists().isString().notEmpty().isURL(),
       ];
   }
@@ -177,9 +179,10 @@ router.get("/ownedItems", async (req, res) => {
 // FETCH ITEMS CREATED BY THEMSELVES
 router.get("/createdItems", async (req, res) => {
   try {
-    let data = await nft.fetchItemsCreated();
 
-    console.log("asfafaf", data)
+    let {email} = req.query;
+
+    let data = await nft.fetchItemsCreated(email);
 
     if (data.error) {
       return res.status(400).send({
@@ -187,6 +190,8 @@ router.get("/createdItems", async (req, res) => {
         message: data.error,
       });
     }
+
+    let createdItems = await cache.get()
 
     return res.status(200).send({
       status: true,
@@ -255,34 +260,34 @@ router.get("/metaData", validate("metaData"), async (req, res, next) => {
       url: url
     };
 
-    const metaData = await cache.getOrSetCache(url, async() => {
+    // const metaData = await cache.getOrSetCache(url, async() => {
 
-      const { data } = await await axios(config);
+    //   const { data } = await await axios(config);
 
-      return data;
+    //   return data;
 
-    })
+    // })
 
-    const response = await axios(config);
-      return res.status(200).send({
-        status: true,
-        message: metaData
-      });
-
-    // let metaData = await cache.get(url);
-    // if (metaData) {
+    // const response = await axios(config);
     //   return res.status(200).send({
     //     status: true,
     //     message: metaData
     //   });
-    // } else {
-    //   const response = await axios(config);
-    //   await cache.set(url,response.data);
-    //   return res.status(200).send({
-    //     status: true,
-    //     message: response.data
-    //   });
-    // }
+
+    let metaData = await cache.get(url);
+    if (metaData) {
+      return res.status(200).send({
+        status: true,
+        message: metaData
+      });
+    } else {
+      const response = await axios(config);
+      await cache.set(url,response.data);
+      return res.status(200).send({
+        status: true,
+        message: response.data
+      });
+    }
 
 
   } catch (error) {
