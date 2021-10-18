@@ -5,6 +5,8 @@ const tokenABI = require("../artifacts/contracts/NFT.sol/NFT.json").abi;
 const marketABI =
   require("../artifacts/contracts/NFTMarket.sol/NFTMarket.json").abi;
 const config = require('../config/config');
+const accountsModel = require("../models/accounts");
+const wallet_library = require('../lib/blockchain/wallet');
 
 var client, provider, tokenContract, marketContract, signerAddress;
 
@@ -114,10 +116,19 @@ const initializeMarketContract = async (signer) => {
 };
 
 // INITIALIZE SIGNER
-const initializeSigner = async (privateKey) => {
+const initializeSigner = async (email) => {
   try {
+
+    console.log("EMAIL", email);
+
+    let account = await accountsModel.findOne({ email: email }).lean().exec();
+
+    console.log("account", account.ref);
+
+    let privateKey = await (await wallet_library.generateAddress(account.ref, true)).privateKey;
+
     let wallet = new ethers.Wallet(
-      "0b2df94bc3c969ea06d2e014053c940fdad8b4e63da05b169b4912db0e2ca25e",//"0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a", //"0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d",
+      privateKey,//"0b2df94bc3c969ea06d2e014053c940fdad8b4e63da05b169b4912db0e2ca25e",//"0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a", //"0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d",
       provider
     );
     // console.log("WALLET ::", wallet.address);
@@ -133,11 +144,11 @@ const initializeSigner = async (privateKey) => {
 };
 
 // CREATE NFT
-const createNFT = async (URI) => {
+const createNFT = async (email, URI) => {
   try {
     await Promise.all([
       initializeWeb3(),
-      initializeTokenContract(await initializeSigner("1")),
+      initializeTokenContract(await initializeSigner(email)),
     ]);
 
     const data = await tokenContract.createToken(URI);
@@ -151,7 +162,7 @@ const createNFT = async (URI) => {
     return value;
   } catch (error) {
 
-    if(error.code){
+    if (error.code) {
       return { error: error.code };
     }
 
@@ -162,17 +173,18 @@ const createNFT = async (URI) => {
 };
 
 // CREATE MARKET ITEM - CREATE NFT
-const createMarketItem = async (URI, price) => {
+const createMarketItem = async (email, URI, price) => {
   try {
     await Promise.all([
       initializeWeb3(),
-      initializeTokenContract(await initializeSigner("1")),
-      initializeMarketContract(await initializeSigner("1")),
+      initializeTokenContract(await initializeSigner(email)),
+      initializeMarketContract(await initializeSigner(email))
     ]);
+    console.log("Fasfasf", email)
 
     // RETRIEVE THE TOKEN ID OF NEW NFT
-    let tokenId = await createNFT(URI);
- 
+    let tokenId = await createNFT(email, URI);
+
     // LISTING & AUCTION PRICE
     const listingPrice = await marketContract.getListingPrice();
     const auctionPrice = await ethers.utils.parseUnits(price, "ether");
@@ -184,6 +196,8 @@ const createMarketItem = async (URI, price) => {
       auctionPrice,
       { value: listingPrice }
     );
+
+
     let tx = await data.wait();
     let event = tx.events[2];
     let item = {
@@ -195,7 +209,7 @@ const createMarketItem = async (URI, price) => {
     return item;
   } catch (error) {
 
-    if(error.code){
+    if (error.code) {
       return { error: error.code };
     }
 
@@ -209,11 +223,11 @@ const createMarketItem = async (URI, price) => {
 };
 
 // CREATE MARKET SALE - BUY NFT
-const createMarketSale = async (tokenId, price) => {
+const createMarketSale = async (email, tokenId, price) => {
   try {
     await Promise.all([
       initializeWeb3(),
-      initializeMarketContract(await initializeSigner("1")),
+      initializeMarketContract(await initializeSigner(email)),
     ]);
 
     // LISTING & AUCTION PRICE
@@ -236,7 +250,7 @@ const createMarketSale = async (tokenId, price) => {
     return item;
   } catch (error) {
 
-    if(error.code){
+    if (error.code) {
       return { error: error.code };
     }
 
@@ -250,12 +264,12 @@ const createMarketSale = async (tokenId, price) => {
 };
 
 // RETRIEVE ALL MARKET ITEMS - EXCEPT OWN NFT ITEMS CREATED
-const fetchMarketItems = async () => {
+const fetchMarketItems = async (email) => {
   try {
     await Promise.all([
       initializeWeb3(),
-      initializeMarketContract(await initializeSigner("1")),
-      initializeTokenContract(await initializeSigner("!")),
+      initializeMarketContract(await initializeSigner(email)),
+      initializeTokenContract(await initializeSigner(email)),
     ]);
 
     const data = await marketContract.fetchMarketItems();
@@ -288,15 +302,15 @@ const fetchMarketItems = async () => {
       })
     );
 
-    if(items.includes(undefined)) {
+    if (items.includes(undefined)) {
       return []
-    }else {
+    } else {
       return items;
     }
 
   } catch (error) {
 
-    if(error.code){
+    if (error.code) {
       return { error: error.code };
     }
 
@@ -306,12 +320,12 @@ const fetchMarketItems = async () => {
 };
 
 // RETRIEVE MY NFTs
-const fetchMyNFTs = async () => {
+const fetchMyNFTs = async (email) => {
   try {
     await Promise.all([
       initializeWeb3(),
-      initializeMarketContract(await initializeSigner("1")),
-      initializeTokenContract(await initializeSigner("!")),
+      initializeMarketContract(await initializeSigner(email)),
+      initializeTokenContract(await initializeSigner(email)),
     ]);
 
     const data = await marketContract.fetchMyNFTs();
@@ -345,7 +359,7 @@ const fetchMyNFTs = async () => {
     return items;
   } catch (error) {
 
-    if(error.code){
+    if (error.code) {
       return { error: error.code };
     }
 
@@ -355,12 +369,12 @@ const fetchMyNFTs = async () => {
 };
 
 // RETRIEVE ITEMS CREATED BY THEMSELVES
-const fetchItemsCreated = async () => {
+const fetchItemsCreated = async (email) => {
   try {
     await Promise.all([
       initializeWeb3(),
-      initializeMarketContract(await initializeSigner("1")),
-      initializeTokenContract(await initializeSigner("!")),
+      initializeMarketContract(await initializeSigner(email)),
+      initializeTokenContract(await initializeSigner(email)),
     ]);
 
     const data = await marketContract.fetchItemsCreated();
@@ -394,7 +408,7 @@ const fetchItemsCreated = async () => {
     return items;
   } catch (error) {
 
-    if(error.code){
+    if (error.code) {
       return { error: error.code };
     }
 

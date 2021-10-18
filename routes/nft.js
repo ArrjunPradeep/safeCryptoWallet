@@ -9,7 +9,6 @@ const query = require("express-validator").query;
 const validationResult = require("express-validator").validationResult;
 const cache = require('../lib/server/cache');
 const config = require("../config/config");
-const accountsModel = require("../models/accounts");
 
 // VALIDATION
 const validate = (routeName) => {
@@ -42,6 +41,21 @@ const validate = (routeName) => {
         header("x-api-key").exists().equals(config.wallet.apiKey),
         query("url").exists().isString().notEmpty().isURL(),
       ];
+    case "marketItems":
+      return [
+        header("x-api-key").exists().equals(config.wallet.apiKey),
+        query("email").exists().notEmpty(),
+      ];
+    case "ownedItems":
+      return [
+        header("x-api-key").exists().equals(config.wallet.apiKey),
+        query("email").exists().notEmpty(),
+      ];
+    case "createdItems":
+      return [
+        header("x-api-key").exists().equals(config.wallet.apiKey),
+        query("email").exists().notEmpty(),
+      ];
   }
 };
 
@@ -61,9 +75,11 @@ router.post("/createItem", validate("createItem"), async (req, res) => {
       return;
     }
 
-    let { auctionPrice, uri } = req.body;
+    let { email, auctionPrice, uri } = req.body;
 
-    let data = await nft.createMarketItem(uri, auctionPrice);
+    let data = await nft.createMarketItem(email, uri, auctionPrice);
+
+    console.log("DATA", data)
 
     if (data.error) {
       return res.status(400).send({
@@ -99,9 +115,9 @@ router.post("/marketSale", validate("marketSale"), async (req, res) => {
       return;
     }
 
-    let { auctionPrice, tokenId } = req.body;
+    let { email, auctionPrice, tokenId } = req.body;
 
-    let data = await nft.createMarketSale(tokenId, auctionPrice);
+    let data = await nft.createMarketSale(email, tokenId, auctionPrice);
 
     if (data.error) {
       return res.status(400).send({
@@ -125,21 +141,48 @@ router.post("/marketSale", validate("marketSale"), async (req, res) => {
 });
 
 // FETCH MARKET ITEMS
-router.get("/marketItems", async (req, res) => {
+router.get("/marketItems", validate("marketItems"), async (req, res) => {
   try {
-    let data = await nft.fetchMarketItems();
 
-    if (data.error) {
-      return res.status(400).send({
+    let errors = validationResult(req);
+    if (errors.isEmpty() == false) {
+      return res.status(412).send({
         status: false,
-        message: data.error,
+        message: "Validation Failed",
+        error: errors,
+      });
+      return;
+    }
+    
+    let { email } = req.query;
+
+    let marketItems = await cache.get(`fetchMarketItems-${email}`);
+
+    if (marketItems) {
+
+      return res.status(200).send({
+        status: true,
+        message: marketItems
+      });
+
+    } else {
+
+      marketItems = await nft.fetchMarketItems(email);
+
+      if (marketItems.error) {
+        return res.status(400).send({
+          status: false,
+          message: marketItems.error,
+        });
+      }
+
+      await cache.set(`fetchMarketItems-${email}`, marketItems);
+      return res.status(200).send({
+        status: true,
+        message: marketItems
       });
     }
 
-    return res.status(200).send({
-      status: true,
-      message: data,
-    });
   } catch (error) {
     console.log(":: MARKET_ITEMS :: ERROR ::", error);
 
@@ -151,21 +194,48 @@ router.get("/marketItems", async (req, res) => {
 });
 
 // FETCH MY NFTs
-router.get("/ownedItems", async (req, res) => {
+router.get("/ownedItems", validate("ownedItems"), async (req, res) => {
   try {
-    let data = await nft.fetchMyNFTs();
 
-    if (data.error) {
-      return res.status(400).send({
+    let errors = validationResult(req);
+    if (errors.isEmpty() == false) {
+      return res.status(412).send({
         status: false,
-        message: data.error,
+        message: "Validation Failed",
+        error: errors,
+      });
+      return;
+    }
+
+    let { email } = req.query;
+
+    let ownedItems = await cache.get(`fetchMyNFTs-${email}`);
+
+    if (ownedItems) {
+
+      return res.status(200).send({
+        status: true,
+        message: ownedItems
+      });
+
+    } else {
+
+      ownedItems = await nft.fetchItemsCreated(email);
+
+      if (ownedItems.error) {
+        return res.status(400).send({
+          status: false,
+          message: ownedItems.error,
+        });
+      }
+
+      await cache.set(`fetchMyNFTs-${email}`, ownedItems);
+      return res.status(200).send({
+        status: true,
+        message: ownedItems
       });
     }
 
-    return res.status(200).send({
-      status: true,
-      message: data,
-    });
   } catch (error) {
     console.log(":: OWNED_ITEMS :: ERROR ::", error);
 
@@ -177,26 +247,48 @@ router.get("/ownedItems", async (req, res) => {
 });
 
 // FETCH ITEMS CREATED BY THEMSELVES
-router.get("/createdItems", async (req, res) => {
+router.get("/createdItems", validate("createdItems"), async (req, res) => {
   try {
 
-    let {email} = req.query;
-
-    let data = await nft.fetchItemsCreated(email);
-
-    if (data.error) {
-      return res.status(400).send({
+    let errors = validationResult(req);
+    if (errors.isEmpty() == false) {
+      return res.status(412).send({
         status: false,
-        message: data.error,
+        message: "Validation Failed",
+        error: errors,
+      });
+      return;
+    }
+
+    let { email } = req.query;
+
+    let createdItems = await cache.get(`fetchItemsCreated-${email}`);
+
+    if (createdItems) {
+
+      return res.status(200).send({
+        status: true,
+        message: createdItems
+      });
+
+    } else {
+
+      createdItems = await nft.fetchItemsCreated(email);
+
+      if (createdItems.error) {
+        return res.status(400).send({
+          status: false,
+          message: createdItems.error,
+        });
+      }
+
+      await cache.set(`fetchItemsCreated-${email}`, createdItems);
+      return res.status(200).send({
+        status: true,
+        message: createdItems
       });
     }
 
-    let createdItems = await cache.get()
-
-    return res.status(200).send({
-      status: true,
-      message: data,
-    });
   } catch (error) {
     console.log(":: CREATED_ITEMS :: ERROR ::", error);
 
@@ -282,7 +374,7 @@ router.get("/metaData", validate("metaData"), async (req, res, next) => {
       });
     } else {
       const response = await axios(config);
-      await cache.set(url,response.data);
+      await cache.set(url, response.data);
       return res.status(200).send({
         status: true,
         message: response.data
