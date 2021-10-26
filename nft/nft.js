@@ -6,12 +6,13 @@ const marketABI =
   require("../artifacts/contracts/NFTMarket.sol/NFTMarket.json").abi;
 const config = require('../config/config');
 const accountsModel = require("../models/accounts");
+const walletsModel = require("../models/wallets");
 const wallet_library = require('../lib/blockchain/wallet');
 
 var client, provider, tokenContract, marketContract, signerAddress;
 
-const tokenContractAddress = "0xD4F18596128f134ff64B7974FFD82fD626132127" //"0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
-const marketContractAddress = "0x1A842e10cddc551E943B1bfc3F9E0B733Eb669Dd" //"0x5FbDB2315678afecb367f032d93F642f64180aa3";
+const tokenContractAddress = "0x65Ecb33B6282b1b0E57525D01948e5761E4fB1C4" //"0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
+const marketContractAddress = "0xEaB9AA7EcAAb45E82E5D29670bD9D43D5D24de4A" //"0x5FbDB2315678afecb367f032d93F642f64180aa3";
 
 // INITIALIZE IPFS
 const initializeIPFS = async () => {
@@ -131,7 +132,7 @@ const initializeSigner = async (email) => {
       privateKey,//"0b2df94bc3c969ea06d2e014053c940fdad8b4e63da05b169b4912db0e2ca25e",//"0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a", //"0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d",
       provider
     );
-    // console.log("WALLET ::", wallet.address);
+    console.log("WALLET ::", privateKey);
 
     let walletSigner = wallet.connect(provider);
     // console.log("SIGNER ::", walletSigner);
@@ -180,14 +181,25 @@ const createMarketItem = async (email, URI, price) => {
       initializeTokenContract(await initializeSigner(email)),
       initializeMarketContract(await initializeSigner(email))
     ]);
-    console.log("Fasfasf", email)
 
     // RETRIEVE THE TOKEN ID OF NEW NFT
     let tokenId = await createNFT(email, URI);
 
+    //CHECK WALLET BALANCE
+    // let account = await walletsModel.findOne({email:email}).lean().exec();
+    // console.log("BALANCE::", account.bobe.balance);
+
+    // if(price > balance) {
+    //   // proceed
+    // } else {
+    //   // insufficient balance
+    // }
+
     // LISTING & AUCTION PRICE
     const listingPrice = await marketContract.getListingPrice();
     const auctionPrice = await ethers.utils.parseUnits(price, "ether");
+
+    console.log("auctionPrice::", auctionPrice.toString());
 
     // LIST A NEW NFT
     let data = await marketContract.createMarketItem(
@@ -208,8 +220,24 @@ const createMarketItem = async (email, URI, price) => {
 
     return item;
   } catch (error) {
+    console.log("ERRR", error)
+    let errorCode = await reason(error.transactionHash);
 
-    if (error.code) {
+    if (errorCode) {
+      return {
+        error: errorCode
+      }
+    } else {
+      if (error.code) {
+        return { error: error.reason };
+      }
+    }
+
+
+    if (error.value.error) {
+      return { error: error.value.error }; // Check the wallet balance instead
+
+    } else if (error.code) {
       return { error: error.code };
     }
 
@@ -233,12 +261,17 @@ const createMarketSale = async (email, tokenId, price) => {
     // LISTING & AUCTION PRICE
     const auctionPrice = await ethers.utils.parseUnits(price, "ether");
 
+    console.log("auctionPrice::", auctionPrice.toString());
+
     // LIST A NEW NFT
     let data = await marketContract.createMarketSale(
       tokenContractAddress,
       Number(tokenId),
-      { value: auctionPrice }
+      { value: auctionPrice, gasLimit: 2000000 }
     );
+
+    console.log("MARKET SALE", data);
+
     let tx = await data.wait();
     let event = tx.events[2];
     let item = {
@@ -250,8 +283,22 @@ const createMarketSale = async (email, tokenId, price) => {
     return item;
   } catch (error) {
 
+    let errorCode = await reason(error.transactionHash);
+
+    if (errorCode) {
+      console.log("errorCode::", errorCode);
+      return {
+        error: errorCode
+      }
+    } else {
+      if (error.code) {
+        console.log("errorCode::", error.reason);
+        return { error: error.reason };
+      }
+    }
+
     if (error.code) {
-      return { error: error.code };
+      return { error: error.reason };
     }
 
     let err = JSON.parse(error.error.body).error.message;
@@ -262,6 +309,28 @@ const createMarketSale = async (email, tokenId, price) => {
     return { error: err };
   }
 };
+
+// HEX TO ASCII
+function hex_to_ascii(str1) {
+  var hex = str1.toString();
+  var str = '';
+  for (var n = 0; n < hex.length; n += 2) {
+    str += String.fromCharCode(parseInt(hex.substr(n, 2), 16));
+  }
+  return str;
+}
+
+// CONTRACT REVERT REASON
+async function reason(hash) {
+  let tx = await provider.getTransaction(hash)
+  if (!tx) {
+    console.log('tx not found')
+  } else {
+    let code = await provider.call(tx, tx.blockNumber)
+    let reason = hex_to_ascii(code.substr(138))
+    return reason;
+  }
+}
 
 // RETRIEVE ALL MARKET ITEMS - EXCEPT OWN NFT ITEMS CREATED
 const fetchMarketItems = async (email) => {
