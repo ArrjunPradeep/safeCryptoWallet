@@ -122,16 +122,16 @@ router.post("/marketSale", validate("marketSale"), async (req, res) => {
     if (data.error) {
       return res.status(400).send({
         status: false,
-        message: data.error,
+        message: data.error
       });
     }
 
     return res.status(200).send({
       status: true,
-      message: data,
+      message: data
     });
   } catch (error) {
-    console.log(":: CREATE_TOKEN :: ERROR :: ", error);
+    console.log(":: CREATE_MARKET_SALE :: ERROR :: ", error);
 
     return res.status(500).send({
       status: false,
