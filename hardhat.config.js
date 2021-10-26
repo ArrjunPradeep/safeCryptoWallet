@@ -17,7 +17,7 @@ module.exports = {
       accounts:[`0x${PRIVATE_KEY}`]
     },
     testnet: {
-      url: "https://data-seed-prebsc-2-s3.binance.org:8545/",
+      url: process.env.PROVIDER, //"https://data-seed-prebsc-2-s3.binance.org:8545/",
       chainId: 97,
       accounts:[`0x${PRIVATE_KEY}`]
     },
