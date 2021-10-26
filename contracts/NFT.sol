@@ -17,7 +17,7 @@ contract NFT is ERC721URIStorage {
   event newToken(address indexed _from, uint256 _tokenId, string _uri);
 
     // Initialize the MarketPlace Address
-    constructor(address marketplaceAddress) ERC721("Cryptois","CRPTI") {
+    constructor(address marketplaceAddress) ERC721("CryptoInsider","CI") {
         contractAddress = marketplaceAddress;
     }
 
