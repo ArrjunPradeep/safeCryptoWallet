@@ -11,8 +11,11 @@ const wallet_library = require('../lib/blockchain/wallet');
 
 var client, provider, tokenContract, marketContract, signerAddress;
 
-const tokenContractAddress = "0x65Ecb33B6282b1b0E57525D01948e5761E4fB1C4" //"0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
-const marketContractAddress = "0xEaB9AA7EcAAb45E82E5D29670bD9D43D5D24de4A" //"0x5FbDB2315678afecb367f032d93F642f64180aa3";
+// MARKETPLACE CONTRACT ADDRESS
+const marketContractAddress = config.wallet.marketplace_address;
+
+// NFT CONTRACT ADDRESS
+const tokenContractAddress = config.wallet.nft_address;
 
 // INITIALIZE IPFS
 const initializeIPFS = async () => {
