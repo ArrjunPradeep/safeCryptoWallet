@@ -220,7 +220,7 @@ router.get("/ownedItems", validate("ownedItems"), async (req, res) => {
 
     } else {
 
-      ownedItems = await nft.fetchItemsCreated(email);
+      ownedItems = await nft.fetchMyNFTs(email);
 
       if (ownedItems.error) {
         return res.status(400).send({
