@@ -89,8 +89,8 @@ router.post("/createItem", validate("createItem"), async (req, res) => {
     }
 
     return res.status(200).send({
-      status: true,
-      message: data,
+      status: data.status,
+      message: data.data,
     });
   } catch (error) {
     console.log(":: CREATE_TOKEN :: ERROR :: ", error);
@@ -126,9 +126,9 @@ router.post("/marketSale", validate("marketSale"), async (req, res) => {
       });
     }
 
-    return res.status(200).send({
-      status: true,
-      message: data
+    return res.status(data.statusCode).send({
+      status: data.status,
+      message: data.data
     });
   } catch (error) {
     console.log(":: CREATE_MARKET_SALE :: ERROR :: ", error);
