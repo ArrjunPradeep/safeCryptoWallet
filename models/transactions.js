@@ -11,6 +11,7 @@ const schema = new mongoose.Schema({
     sourceAmount: String,
     targetAmount:String,
     type: String,
+    method: String,
     value: String,
     currency: String,
     hash: String,
