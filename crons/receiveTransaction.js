@@ -12,15 +12,15 @@ const tokensModel = require("../models/tokens");
 mongoose
   .connect(
     "mongodb://" +
-      config.db.userName +
-      ":" +
-      config.db.password +
-      "@" +
-      config.db.host +
-      ":" +
-      config.db.port +
-      "/" +
-      config.db.dbName
+    config.db.userName +
+    ":" +
+    config.db.password +
+    "@" +
+    config.db.host +
+    ":" +
+    config.db.port +
+    "/" +
+    config.db.dbName
   )
   .then(async () => {
     // init();
@@ -28,7 +28,7 @@ mongoose
   });
 
 // WEBSOCKET URL
-var url = config.wallet.websocket; 
+var url = config.wallet.websocket;
 
 // PROVIDER
 var provider = new ethers.providers.WebSocketProvider(url);
@@ -44,18 +44,19 @@ let initialBlock =
     : config.wallet.initialBlock;
 let isRunning = false;
 let contracts = [];
+let nftContracts = [config.wallet.marketplace_address, config.wallet.nft_address];
 var isTokenrunning = false;
 
 const EXPECTED_PONG_BACK = 15000
 const KEEP_ALIVE_CHECK_INTERVAL = 6000 //7500
 
-const startConnection = async() => {
+const startConnection = async () => {
   provider = new ethers.providers.WebSocketProvider(url)
 
   let pingTimeout = null
   let keepAliveInterval = null
 
-  provider._websocket.on('open', async() => {
+  provider._websocket.on('open', async () => {
 
     keepAliveInterval = setInterval(() => {
       console.log(':: CHECKING IF CONNECTION IS ALIVE, SENDING A PING');
@@ -77,18 +78,19 @@ const startConnection = async() => {
     contractData.forEach((_contractData) => {
       contracts.push(_contractData.address);
     });
+    
     // EVENT LISTENING WHEN NEW BLOCKS MINED
     provider.on("block", async (tx) => {
-  
+
       if (latestBlock == undefined) {
         latestBlock = await provider.getBlock(initialBlock);
         console.log(":: LATEST BLOCK :: ", latestBlock.number);
         blocksToCheck.push(latestBlock);
         lastCheckedBlock = latestBlock.number - 1;
       }
-  
+
       latestBlock = await provider.getBlock(Number(latestBlock.number) + 1);
-  
+
       if (latestBlock == null) {
         latestBlock = await provider.getBlock(lastCheckedBlock);
         console.log(":: PREVIOUS BLOCK :: ", latestBlock.number);
@@ -139,7 +141,7 @@ const checkBlocks = async () => {
 
         console.log(
           ":: BLOCK TRANSACTIONS :: ",
-          block.transactions.length,
+          block.transactions,
           "\n"
         );
 
@@ -183,11 +185,14 @@ const checkBlocks = async () => {
 
             // ADD TOKEN TRANSACTION
             tokenTransaction();
+          } else if (nftContracts.indexOf(txn.from) >= 0) {
+            // NFT TRANSACTIONS
+            console.log("NFT TRANSACTIONS", txn);
           }
 
           if (wallets.indexOf(txn.from) >= 0) {
             // INTERNAL TRANSACTION - UPDATE THE STATUS OF TYPE : "SEND" UPON SUCCESSFULL TRANSACTION
-            console.log(":: TRANSACTION FROM OUR WALLET :: \n");
+            console.log(":: TRANSACTION FROM OUR WALLET :: \n",txn);
 
             let txFromDb = await transactionsModel
               .findOne({ hash: txn.hash })
@@ -201,7 +206,7 @@ const checkBlocks = async () => {
               .lean()
               .exec();
 
-            if (user != null) {
+            if (user != null) {  // ADD txFromDb Condition !=null
               // UPDATE THE TRANSACTION STATUS [SUCCESS]
 
               let balance = await ethers.utils.formatEther(
@@ -223,9 +228,9 @@ const checkBlocks = async () => {
                   $set: {
                     status: status,
                     from: txn.from,
-                    gasPrice:txn.gasPrice,
-                    gasLimit:txn.gasLimit,
-                    fee: Number((txn.gasLimit)*(await ethers.utils.formatEther(txn.gasPrice))),
+                    gasPrice: txn.gasPrice,
+                    gasLimit: txn.gasLimit,
+                    fee: Number((txn.gasLimit) * (await ethers.utils.formatEther(txn.gasPrice))),
                   },
                 }
               );
@@ -276,6 +281,8 @@ const coinTransaction = async () => {
   try {
     while (transactionsToAdd.length > 0) {
       let txn = transactionsToAdd[0];
+
+      console.log("C TRANSACTION :: ", txn);
 
       let user = await walletsModel
         .findOne({ "bnb.address": txn.to })
@@ -348,7 +355,7 @@ const coinTransaction = async () => {
             reason: "",
             gasLimit: txn.gasLimit,
             gasPrice: txn.gasPrice,
-            fee: Number((txn.gasLimit)*(await ethers.utils.formatEther(txn.gasPrice))),
+            fee: Number((txn.gasLimit) * (await ethers.utils.formatEther(txn.gasPrice))),
             timestamp: String(new Date().getTime()),
           });
 
@@ -479,7 +486,7 @@ const tokenTransaction = async () => {
                   reason: "",
                   gasLimit: transaction.gasLimit,
                   gasPrice: transaction.gasPrice,
-                  fee: Number((transaction.gasLimit)*(await ethers.utils.formatEther(transaction.gasPrice))),
+                  fee: Number((transaction.gasLimit) * (await ethers.utils.formatEther(transaction.gasPrice))),
                   timestamp: String(new Date().getTime()),
                 });
               }
@@ -514,7 +521,7 @@ const tokenTransaction = async () => {
                   reason: "",
                   gasLimit: transaction.gasLimit,
                   gasPrice: transaction.gasPrice,
-                  fee: Number((transaction.gasLimit)*(await ethers.utils.formatEther(transaction.gasPrice))),
+                  fee: Number((transaction.gasLimit) * (await ethers.utils.formatEther(transaction.gasPrice))),
                   timestamp: String(new Date().getTime()),
                 });
               }
