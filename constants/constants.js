@@ -5,6 +5,11 @@ module.exports = {
         PENDING: 'pending',
         SUCCESS: 'success',
         FAILED: 'failed',
+    },
+
+    STATUS: {
+        SUCCESS: 200,
+        UNPROCESSABLE_ENTITY: 422
     }
 
 }
