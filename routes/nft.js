@@ -88,7 +88,7 @@ router.post("/createItem", validate("createItem"), async (req, res) => {
       });
     }
 
-    return res.status(200).send({
+    return res.status(data.statusCode).send({
       status: data.status,
       message: data.data,
     });
