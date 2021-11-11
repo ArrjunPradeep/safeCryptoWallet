@@ -9,7 +9,7 @@ const schema = new mongoose.Schema({
     source: String,
     target: String,
     sourceAmount: String,
-    targetAmount:String,
+    targetAmount: String,
     type: String,
     method: String,
     value: String,
@@ -19,13 +19,22 @@ const schema = new mongoose.Schema({
     error: String,
     reason: String,
     fee: Number,
+    uri: String,
+    auctionPrice: String,
+    itemId: String,
+    tokenId: String,
+    metadata: {
+        name: String,
+        description: String,
+        image: String
+    },
     gasLimit: String,
     gasPrice: String,
     timestamp: {
         type: String,
         default: new Date().getTime()
     }
-},{ collection: 'transactions'})
+}, { collection: 'transactions' })
 
 schema.plugin(mongoosePaginate);
 

@@ -9,6 +9,8 @@ const schema = new mongoose.Schema({
         intialBlock:String,
     },
     secret: String,
+    marketplace_address: String,
+    nft_address: String
 })
 
 module.exports = mongoose.model('settings', schema)
