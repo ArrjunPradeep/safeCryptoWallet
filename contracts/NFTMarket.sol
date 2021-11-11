@@ -32,21 +32,21 @@ contract NFTMarket is ReentrancyGuard {
     mapping(uint256 => MarketItem) private idToMarketItem;
 
     event MarketItemCreated (
-        uint indexed itemId,
+        uint itemId,
         address indexed nftContract,
-        uint256 indexed tokenId,
-        address seller,
-        address owner,
+        uint256 tokenId,
+        address indexed seller,
+        address indexed owner,
         uint256 price,
         bool sold
     );
 
         event MarketItemSold (
-        uint indexed itemId,
+        uint itemId,
         address indexed nftContract,
-        uint256 indexed tokenId,
-        address seller,
-        address owner,
+        uint256 tokenId,
+        address indexed seller,
+        address indexed owner,
         uint256 price,
         bool sold
     );
@@ -94,8 +94,9 @@ contract NFTMarket is ReentrancyGuard {
         address nftContract,
         uint256 itemId
     ) public payable nonReentrant {
+        
         uint256 price = idToMarketItem[itemId].price;
-        uint tokenId = idToMarketItem[itemId].itemId;
+        uint tokenId = idToMarketItem[itemId].tokenId;
         require(idToMarketItem[itemId].sold == false, "Item already sold");
         require(msg.value == price, "Please submit the asking price in order to complete the purchase");
 
@@ -110,9 +111,9 @@ contract NFTMarket is ReentrancyGuard {
         nftContract,
         tokenId,
         idToMarketItem[itemId].seller,
-        owner,
-        price,
-        false
+        idToMarketItem[itemId].owner,
+        idToMarketItem[itemId].price,
+        idToMarketItem[itemId].sold
         );
     }
 
