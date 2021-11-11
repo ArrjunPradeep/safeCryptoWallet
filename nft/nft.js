@@ -7,18 +7,14 @@ const marketABI =
 const config = require('../config/config');
 const accountsModel = require("../models/accounts");
 const transactionsModel = require("../models/transactions");
+const settingsModel = require("../models/settings");
 const walletsModel = require("../models/wallets");
+const nftsModel = require("../models/nft");
 const ethereum_lib = require("../lib/crypto/ethereum");
 const wallet_library = require('../lib/blockchain/wallet');
 const constants = require("../constants/constants");
 
-var client, provider, tokenContract, marketContract, signerAddress;
-
-// MARKETPLACE CONTRACT ADDRESS
-const marketContractAddress = config.wallet.marketplace_address;
-
-// NFT CONTRACT ADDRESS
-const tokenContractAddress = config.wallet.nft_address;
+var client, provider, tokenContract, marketContract, signerAddress, marketContractAddress, tokenContractAddress;
 
 // INITIALIZE IPFS
 const initializeIPFS = async () => {
@@ -99,6 +95,10 @@ const initializeWeb3 = async () => {
 // INITIALIZE TOKEN CONTRACT
 const initializeTokenContract = async (signer) => {
   try {
+
+    // NFT CONTRACT ADDRESS
+    tokenContractAddress = (await settingsModel.findOne({}).lean().exec()).nft_address;
+
     tokenContract = new ethers.Contract(tokenContractAddress, tokenABI, signer);
     signerAddress = signer.address;
   } catch (error) {
@@ -110,12 +110,18 @@ const initializeTokenContract = async (signer) => {
 // INITIALIZE MARKET CONTRACT
 const initializeMarketContract = async (signer) => {
   try {
+
+    // MARKETPLACE CONTRACT ADDRESS
+    marketContractAddress = (await settingsModel.findOne({}).lean().exec()).marketplace_address;
+    console.log("asfdfasfgvasf", marketContractAddress);
+
     marketContract = new ethers.Contract(
       marketContractAddress,
       marketABI,
       signer
     );
     signerAddress = signer.address;
+
   } catch (error) {
     console.log(":: INITIALIZE_MARKET_CONTRACT :: ERROR :: \n", error);
     return;
@@ -141,7 +147,7 @@ const initializeSigner = async (email) => {
     console.log("WALLET ::", privateKey);
 
     let walletSigner = wallet.connect(provider);
-    // console.log("SIGNER ::", walletSigner);
+    console.log("SIGNER ::", walletSigner);
 
     return walletSigner;
   } catch (error) {
@@ -151,175 +157,165 @@ const initializeSigner = async (email) => {
 };
 
 // CREATE NFT
-const createNFT = async (email, URI) => {
+const createToken = async (email, URI, name, description, image) => {
   try {
     let promises = await Promise.all([
       initializeWeb3(),
       initializeTokenContract(await initializeSigner(email)),
-      accountsModel.findOne({ email: email }).lean().exec()
+      accountsModel.findOne({ email: email }).lean().exec(),
+      walletsModel.findOne({ email: email }).lean().exec()
     ]);
 
-    const data = await tokenContract.createToken(URI, { gasLimit: Number(config.wallet.gasLimit) * 8 });
+    //CHECK WALLET BALANCE
+    let balance = await checkBalance(email, '0');
+    console.log("BALANCE", balance);
 
-    let tx = await data.wait();
+    if (balance.status) {
 
-    if (tx.status) {
+      let transactionFee, data;
 
-      let transactionFee = Number(tx.gasUsed.toString()) * Number(data.gasPrice.toString());
-
-      let method = await ethereum_lib.functionDataDecoding(tokenABI, data.data);
+      transactionFee = Number(balance.gasLimit) * Number(balance.gasPrice);
 
       await transactionsModel.create({
         email: email,
         ref: promises[2].ref,
-        from: tx.from,
-        to: tx.to,
+        from: promises[3].bnb.address,
+        to: tokenContractAddress,
         source: 'bnb',
         target: 'bnb',
-        sourceAmount: ethers.utils.formatEther(data.value),
-        targetAmount: ethers.utils.formatEther(data.value),
+        sourceAmount: ethers.utils.formatEther('0'),
+        targetAmount: ethers.utils.formatEther('0'),
         type: "send",
         currency: 'bnb',
-        method: method,
-        hash: tx.transactionHash,
-        status: constants.TXNS.SUCCESS,
+        method: "createToken",
+        uri: URI,
+        metadata: {
+          name: name,
+          description: description,
+          image: image
+        },
+        hash: "",
+        status: constants.TXNS.IN_QUEUE,
         error: "nil",
-        gasLimit: tx.gasUsed.toString(),
-        gasPrice: data.gasPrice.toString(),
-        fee: ethers.utils.formatUnits(String(transactionFee)),
-        timestamp: String(new Date().getTime()),
+        gasLimit: balance.gasLimit,
+        gasPrice: balance.gasPrice,
+        fee: String(transactionFee),
+        timestamp: String(new Date().getTime())
       });
-
-      let event = tx.events[2];
-
-      let value = event.args[1].toString();
 
       return {
         status: true,
-        value: value
-      };
+        statusCode: constants.STATUS.SUCCESS,
+        data: {
+          data: "Transaction Processing"
+        }
+      }
 
     } else {
-
       return {
         status: false,
-        value: "Token Creation Failed"
-      };
-
+        statusCode: constants.STATUS.UNPROCESSABLE_ENTITY,
+        data: {
+          data: "Insufficient Balance",
+          availableBalance: balance.balance,
+          estimatedValue: balance.total
+        }
+      }
     }
 
   } catch (error) {
 
-    if (error.code) {
-      return {
-        status: false,
-        value: error.code
-      };
-    }
-
     console.log(":: CREATE_NFT :: ERROR :: ", error);
 
-    return;
+    return {
+      status: false,
+      statusCode: constants.STATUS.INTERNAL_SERVER_ERROR,
+      data: {
+        data: "Internal Server Error"
+      }
+    };
+
   }
 };
 
+// IPFS METADATA
+const metadata = async (url) => {
+
+  try {
+
+    const config = {
+      method: "GET",
+      url: url
+    };
+
+    const response = await axios(config);
+
+    console.log(":: METADATA :: ", response.data);
+
+    return response.data;
+
+  } catch (error) {
+
+    console.log(":: METADATA_ERROR :: ", error);
+    return;
+
+  }
+
+}
+
 // CREATE MARKET ITEM - CREATE NFT
-const createMarketItem = async (email, URI, price) => {
+const createMarketItem = async (email, tokenId, price) => {
   try {
     let promises = await Promise.all([
       initializeWeb3(),
       initializeTokenContract(await initializeSigner(email)),
-      initializeMarketContract(await initializeSigner(email)),
-      accountsModel.findOne({ email: email }).lean().exec()
+      accountsModel.findOne({ email: email }).lean().exec(),
+      walletsModel.findOne({ email: email }).lean().exec(),
+      initializeMarketContract(await initializeSigner(email))
     ]);
 
     // LISTING PRICE
     const listingPrice = await marketContract.getListingPrice();
 
-    // AUCTION PRICE
-    const auctionPrice = await ethers.utils.parseUnits(price, "ether");
-
     //CHECK WALLET BALANCE
-    let balance = await checkBalance(email, "createMarketItem", ethers.utils.formatEther(listingPrice));
+    let balance = await checkBalance(email, ethers.utils.formatEther(listingPrice));
     console.log("BALANCE", balance);
 
     if (balance.status) {
 
-      // RETRIEVE THE TOKEN ID OF NEW NFT
-      let tokenId = await createNFT(email, URI);
+      let transactionFee, data;
 
-      if (tokenId.status) {
+      transactionFee = Number(balance.gasLimit) * Number(balance.gasPrice);
 
-        // LIST A NEW NFT
-        let data = await marketContract.createMarketItem(
-          tokenContractAddress,
-          tokenId.value,
-          auctionPrice,
-          { value: listingPrice, gasLimit: Number(config.wallet.gasLimit) * 8 }
-        );
+      await transactionsModel.create({
+        email: email,
+        ref: promises[2].ref,
+        from: promises[3].bnb.address,
+        to: marketContractAddress,
+        source: 'bnb',
+        target: 'bnb',
+        sourceAmount: ethers.utils.formatEther(listingPrice),
+        targetAmount: ethers.utils.formatEther(listingPrice),
+        type: "send",
+        currency: 'bnb',
+        method: "createMarketItem",
+        auctionPrice: price,
+        hash: "",
+        status: constants.TXNS.IN_QUEUE,
+        error: "nil",
+        tokenId: tokenId,
+        gasLimit: balance.gasLimit,
+        gasPrice: balance.gasPrice,
+        fee: String(transactionFee),
+        timestamp: String(new Date().getTime())
+      });
 
-
-        let tx = await data.wait();
-
-        if (tx.status) {
-
-          let transactionFee = Number(tx.gasUsed.toString()) * Number(data.gasPrice.toString());
-
-          let method = await ethereum_lib.functionDataDecoding(marketABI, data.data);
-
-          await transactionsModel.create({
-            email: email,
-            ref: promises[3].ref,
-            from: tx.from,
-            to: tx.to,
-            source: 'bnb',
-            target: 'bnb',
-            sourceAmount: ethers.utils.formatEther(data.value),
-            targetAmount: ethers.utils.formatEther(data.value),
-            type: "send",
-            currency: 'bnb',
-            method: method,
-            hash: tx.transactionHash,
-            status: constants.TXNS.SUCCESS,
-            error: "nil",
-            gasLimit: tx.gasUsed.toString(),
-            gasPrice: data.gasPrice.toString(),
-            fee: ethers.utils.formatUnits(String(transactionFee)),
-            timestamp: String(new Date().getTime())
-
-          });
-
-          let event = tx.events[2];
-          let item = {
-            itemId: event.args[0].toString(),
-            tokenId: event.args[2].toString(),
-            price: event.args[5].toString(),
-          };
-
-          return {
-            status: true,
-            statusCode: constants.STATUS.SUCCESS,
-            data: item
-          }
-
-        } else {
-
-          return {
-            status: false,
-            statusCode: constants.STATUS.UNPROCESSABLE_ENTITY,
-            data: "Item Creation Failed"
-          }
-
+      return {
+        status: true,
+        statusCode: constants.STATUS.SUCCESS,
+        data: {
+          data: "Transaction Processing"
         }
-
-      } else {
-
-        return {
-          status: tokenId.status,
-          statusCode: constants.STATUS.UNPROCESSABLE_ENTITY,
-          data: tokenId.value == "INSUFFICIENT_FUNDS" ? "Insufficient Balance" : tokenId.value
-        }
-
       }
 
     } else {
@@ -333,40 +329,22 @@ const createMarketItem = async (email, URI, price) => {
     }
 
   } catch (error) {
-    console.log("ERRR", error)
-    let errorCode = await reason(error.transactionHash);
+    console.log(" :: CREATE_MARKET_ITEM ERROR :: ", error)
 
-    if (errorCode) {
-      return {
-        error: errorCode
-      }
-    } else {
-      if (error.code) {
-        return { error: error.reason };
+    return {
+      status: false,
+      statusCode: constants.STATUS.INTERNAL_SERVER_ERROR,
+      data: {
+        data: "Internal Server Error"
       }
     }
 
-
-    if (error.value.error) {
-      return { error: error.value.error }; // Check the wallet balance instead
-
-    } else if (error.code) {
-      return { error: error.code };
-    }
-
-    let err = JSON.parse(error.error.body).error.message;
-    err = err.substring(err.indexOf("'") + 1, err.lastIndexOf("'"));
-
-    console.log(":: CREATE_MARKET_ITEM :: ERROR :: ", err);
-
-    return { error: err };
   }
 };
 
 // C H E C K    A C C O U N T    B A L A N C E
 const checkBalance = async (
   email,
-  method,
   amount
 ) => {
 
@@ -388,23 +366,11 @@ const checkBalance = async (
 
   console.log(":: GAS LIMIT ::", gasLimit);
 
-  if (method == "createMarketItem") {
+  transactionFee = (gasPrice * (gasLimit));
+  console.log(":: TXN FEE :: ", transactionFee);
 
-    transactionFee = (2 * gasPrice * (gasLimit * 8)); // 2 -> Two transactions [createToken & createMarketItem]
-    console.log(":: TXN FEE :: ", transactionFee);
-
-    balance = Number(actualBalance) - Number(transactionFee);
-    console.log(":: BALANCE :: ", balance);
-
-  } else if (method == "createMarketSale") {
-
-    transactionFee = (gasPrice * (gasLimit * 8));
-    console.log(":: TXN FEE :: ", transactionFee);
-
-    balance = Number(actualBalance) - Number(transactionFee);
-    console.log(":: BALANCE :: ", balance);
-
-  }
+  balance = Number(actualBalance) - Number(transactionFee);
+  console.log(":: BALANCE :: ", balance);
 
   if (amount < balance) {
 
@@ -425,6 +391,8 @@ const checkBalance = async (
       status: true,
       balance: actualBalance,
       total: transactionFee + amount,
+      gasLimit: gasLimit,
+      gasPrice: gasPrice
     };
 
   } else {
@@ -437,82 +405,55 @@ const checkBalance = async (
 };
 
 // CREATE MARKET SALE - BUY NFT
-const createMarketSale = async (email, itemId, price) => {
+const createMarketSale = async (email, tokenId, price) => {
   try {
     let promises = await Promise.all([
       initializeWeb3(),
       initializeMarketContract(await initializeSigner(email)),
-      accountsModel.findOne({ email: email }).lean().exec()
+      accountsModel.findOne({ email: email }).lean().exec(),
+      walletsModel.findOne({ email: email }).lean().exec(),
+      nftsModel.findOne({ tokenId: tokenId }).lean().exec()
     ]);
 
-    // LISTING & AUCTION PRICE
-    const auctionPrice = await ethers.utils.parseUnits(price, "ether");
-
     //CHECK WALLET BALANCE
-    let balance = await checkBalance(email, "createMarketSale", Number(price));
+    let balance = await checkBalance(email, Number(price));
     console.log("BALANCE", balance);
 
     if (balance.status) {
 
-      // LIST A NEW NFT
-      let data = await marketContract.createMarketSale(
-        tokenContractAddress,
-        itemId,
-        { value: auctionPrice, gasLimit: Number(config.wallet.gasLimit) * 8 }
-      );
+      let transactionFee;
 
-      let tx = await data.wait();
+      transactionFee = Number(balance.gasLimit) * Number(balance.gasPrice);
 
-      if (tx.status) {
+      await transactionsModel.create({
+        email: email,
+        ref: promises[2].ref,
+        from: promises[3].bnb.address,
+        to: marketContractAddress,
+        source: 'bnb',
+        target: 'bnb',
+        sourceAmount: price,
+        targetAmount: price,
+        type: "send",
+        currency: 'bnb',
+        method: "createMarketSale",
+        auctionPrice: price,
+        hash: "",
+        status: constants.TXNS.IN_QUEUE,
+        error: "nil",
+        itemId: promises[4].itemId,
+        gasLimit: balance.gasLimit,
+        gasPrice: balance.gasPrice,
+        fee: String(transactionFee),
+        timestamp: String(new Date().getTime())
+      });
 
-        let transactionFee = Number(tx.gasUsed.toString()) * Number(data.gasPrice.toString());
-
-        let method = await ethereum_lib.functionDataDecoding(marketABI, data.data);
-
-        await transactionsModel.create({
-          email: email,
-          ref: promises[2].ref,
-          from: tx.from,
-          to: tx.to,
-          source: 'bnb',
-          target: 'bnb',
-          sourceAmount: ethers.utils.formatEther(data.value),
-          targetAmount: ethers.utils.formatEther(data.value),
-          type: "send",
-          currency: 'bnb',
-          method: method,
-          hash: tx.transactionHash,
-          status: constants.TXNS.SUCCESS,
-          error: "nil",
-          gasLimit: tx.gasUsed.toString(),
-          gasPrice: data.gasPrice.toString(),
-          fee: ethers.utils.formatUnits(String(transactionFee)),
-          timestamp: String(new Date().getTime())
-
-        });
-
-        let event = tx.events[2];
-        console.log("EVENTS:",event);
-        let item = {
-          itemId: event.args[0].toString(),
-          tokenId: event.args[2].toString(),
-          price: event.args[5].toString(),
-        };
-
-        return {
-          status: true,
-          statusCode: constants.STATUS.SUCCESS,
-          data: item
+      return {
+        status: true,
+        statusCode: constants.STATUS.SUCCESS,
+        data: {
+          data: "Transaction Processing"
         }
-
-      } else {
-
-        return {
-          status: false,
-          statusCode: constants.STATUS.UNPROCESSABLE_ENTITY,
-          data: "Item Sale Failed"
-        }
-
       }
 
     } else {
@@ -524,6 +465,31 @@ const createMarketSale = async (email, itemId, price) => {
       }
 
     }
+
+  } catch (error) {
+
+    console.log(":: CREATE_MARKET_SALE :: ERROR :: ", error);
+
+    return {
+      status: false,
+      statusCode: constants.STATUS.INTERNAL_SERVER_ERROR,
+      data: {
+        data: "Internal Server Error"
+      }
+    }
+
+  }
+};
+
+// CREATE MARKET SALE - BUY NFT
+const createMarketSales = async (email) => {
+  try {
+    let promises = await Promise.all([
+      initializeWeb3(),
+      initializeMarketContract(await initializeSigner(email)),
+      accountsModel.findOne({ email: email }).lean().exec(),
+      initializeTokenContract(await initializeSigner(email))
+    ]);
 
   } catch (error) {
 
@@ -584,6 +550,7 @@ const fetchMarketItems = async (email) => {
             price,
             tokenId: i.tokenId.toNumber(),
             seller: i.seller,
+            itemId: i.itemId.toNumber(),
             // owner: i.owner,
             image: meta.data.image,
             name: meta.data.name,
@@ -720,6 +687,62 @@ const hex_to_ascii = async (str1) => {
   return str;
 }
 
+// UNLISTED TOKENS
+const tokens = async (email) => {
+
+  try {
+
+    let tokens = await nftsModel.find(
+      {
+        $and: [
+          {
+            email: email
+          },
+          {
+            seller: '0x0000000000000000000000000000000000000000'
+          },
+          {
+            active: false
+          },
+          {
+            market: false
+          }
+        ]
+      },
+      {
+        _id: 0,
+        tokenId: 1,
+        metadata: 1
+      }
+    ).sort({ timestamp: -1 })
+      .lean()
+      .exec();
+
+
+    return {
+      status: true,
+      statusCode: constants.STATUS.SUCCESS,
+      data: {
+        data: tokens
+      }
+    };
+
+  } catch (error) {
+
+    console.log(" :: TOKENS :: ", error);
+
+    return {
+      status: false,
+      statusCode: constants.STATUS.INTERNAL_SERVER_ERROR,
+      data: {
+        data: "Internal Server Error"
+      }
+    };
+
+  }
+
+}
+
 // CONTRACT REVERT REASON
 const reason = async (hash) => {
   let tx = await provider.getTransaction(hash)
@@ -732,11 +755,170 @@ const reason = async (hash) => {
   }
 }
 
+// MARKET ITEMS
+const marketItems = async (email) => {
+
+  try {
+
+    let marketItems = await nftsModel.find({
+      $and: [
+        {
+          email: {
+            $ne: email
+          }
+        },
+        {
+          sold: false
+        },
+        {
+          market: true
+        },
+        {
+          active: true
+        }
+      ]
+    },
+      {
+        _id: 0,
+        tokenId: 1,
+        metadata: 1,
+        price: 1
+      }).sort({ timestamp: -1 })
+      .lean()
+      .exec();
+
+    return {
+      status: true,
+      statusCode: constants.STATUS.SUCCESS,
+      data: {
+        data: marketItems
+      }
+    };
+
+  } catch (error) {
+
+    return {
+      status: false,
+      statusCode: constants.STATUS.INTERNAL_SERVER_ERROR,
+      data: {
+        data: "Internal Server Error"
+      }
+    };
+
+  }
+
+}
+
+// OWNED ITEMS
+const ownedItems = async(email) => {
+
+  try {
+
+    let walletAddress = (await walletsModel.findOne({email:email}).exec()).bnb.address;
+
+    let ownedItems = await nftsModel.find({
+      $and:[
+        {
+          owner:walletAddress
+        },
+        {
+          sold: true
+        }
+      ]
+    },
+    {
+      _id: 0,
+      tokenId: 1,
+      metadata: 1,
+      price:1
+    }).sort({ timestamp: -1 })
+      .lean()
+      .exec();
+    
+    return {
+      status: true,
+      statusCode: constants.STATUS.SUCCESS,
+      data: {
+        data: ownedItems
+      }
+    };
+
+  } catch (error) {
+    
+    return {
+      status: false,
+      statusCode: constants.STATUS.INTERNAL_SERVER_ERROR,
+      data: {
+        data: "Internal Server Error"
+      }
+    };
+
+  }
+
+}
+
+// CREATED ITEMS
+const createdItems = async(email) => {
+
+  try {
+
+    let walletAddress = (await walletsModel.findOne({email:email}).exec()).bnb.address;
+
+    let createdItems = await nftsModel.find({
+      $and:[
+        {
+          seller:walletAddress
+        },
+        {
+          active: true
+        },
+        {
+          market: true
+        }
+      ]
+    },
+    {
+      _id: 0,
+      tokenId: 1,
+      metadata: 1,
+      price:1
+    }).sort({ timestamp: -1 })
+      .lean()
+      .exec();
+    
+    return {
+      status: true,
+      statusCode: constants.STATUS.SUCCESS,
+      data: {
+        data: createdItems
+      }
+    };
+
+  } catch (error) {
+    
+    return {
+      status: false,
+      statusCode: constants.STATUS.INTERNAL_SERVER_ERROR,
+      data: {
+        data: "Internal Server Error"
+      }
+    };
+
+  }
+
+}
+
 module.exports = {
   uploadFileToIPFS,
+  createToken,
   createMarketItem,
   createMarketSale,
   fetchMarketItems,
   fetchMyNFTs,
-  fetchItemsCreated
+  fetchItemsCreated,
+  metadata,
+  tokens,
+  marketItems,
+  ownedItems,
+  createdItems
 };
