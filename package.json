@@ -6,10 +6,10 @@
     "start": "node ./bin/www"
   },
   "dependencies": {
-    "@nomiclabs/hardhat-etherscan": "^2.1.6",
+    "@nomiclabs/hardhat-etherscan": "^2.1.7",
     "@openzeppelin/contracts": "^4.3.2",
     "abi-decoder": "^2.4.0",
-    "axios": "^0.21.1",
+    "axios": "^0.21.4",
     "bcrypt": "^5.0.1",
     "bip39": "^3.0.4",
     "cookie-parser": "~1.4.4",
@@ -17,14 +17,14 @@
     "dotenv": "^10.0.0",
     "express": "~4.16.1",
     "express-fileupload": "^1.2.1",
-    "express-validator": "^6.12.1",
+    "express-validator": "^6.13.0",
     "fs": "0.0.1-security",
     "ipfs-http-client": "^53.0.1",
     "jsonwebtoken": "^8.5.1",
     "lokijs": "^1.5.12",
     "mkdirp": "^1.0.4",
-    "mongoose": "^5.13.3",
-    "mongoose-paginate-v2": "^1.4.1",
+    "mongoose": "^5.13.13",
+    "mongoose-paginate-v2": "^1.4.2",
     "morgan": "~1.9.1",
     "node-cron": "^3.0.0",
     "path": "^0.12.7",
@@ -37,7 +37,7 @@
     "@nomiclabs/hardhat-waffle": "^2.0.1",
     "chai": "^4.3.4",
     "ethereum-waffle": "^3.4.0",
-    "ethers": "^5.4.7",
-    "hardhat": "^2.6.5"
+    "ethers": "^5.5.1",
+    "hardhat": "^2.6.8"
   }
 }
