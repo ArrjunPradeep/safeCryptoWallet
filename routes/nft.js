@@ -13,15 +13,26 @@ const config = require("../config/config");
 // VALIDATION
 const validate = (routeName) => {
   switch (routeName) {
+    case "createToken":
+      return [
+        header("x-api-key").exists().equals(config.wallet.apiKey),
+        body("email").exists().isString().notEmpty(),
+        body("uri").exists().isString().notEmpty(),
+        body("name").exists().isString().notEmpty(),
+        body("description").exists().isString().notEmpty(),
+        body("image").exists().isString().notEmpty(),
+      ];
     case "createItem":
       return [
         header("x-api-key").exists().equals(config.wallet.apiKey),
+        body("email").exists().isString().notEmpty(),
         body("auctionPrice").exists().isString().notEmpty(),
-        body("uri").exists().isString().notEmpty(),
+        body("tokenId").exists().isString().notEmpty(),
       ];
     case "marketSale":
       return [
         header("x-api-key").exists().equals(config.wallet.apiKey),
+        body("email").exists().isString().notEmpty(),
         body("auctionPrice").exists().isString().notEmpty(),
         body("tokenId").exists().isString().notEmpty(),
       ];
@@ -56,6 +67,12 @@ const validate = (routeName) => {
         header("x-api-key").exists().equals(config.wallet.apiKey),
         query("email").exists().notEmpty(),
       ];
+
+    case "fetchTokens":
+      return [
+        header("x-api-key").exists().equals(config.wallet.apiKey),
+        query("email").exists().notEmpty(),
+      ];
   }
 };
 
@@ -63,6 +80,40 @@ const validate = (routeName) => {
 router.use(fileUpload());
 
 // CREATE NFT
+router.post("/createToken", validate("createToken"), async (req, res) => {
+  try {
+    let errors = validationResult(req);
+    if (errors.isEmpty() == false) {
+      return res.status(412).send({
+        status: false,
+        message: "Validation Failed",
+        error: errors,
+      });
+      return;
+    }
+
+    let { email, uri, name, description, image } = req.body;
+
+    let data = await nft.createToken(email, uri, name, description, image);
+
+    console.log("DATA", data)
+
+    return res.status(data.statusCode).send({
+      status: data.status,
+      message: data.data,
+    });
+
+  } catch (error) {
+    console.log(":: CREATE_TOKEN :: ERROR :: ", error);
+
+    return res.status(500).send({
+      status: false,
+      message: "Internal Server Error",
+    });
+  }
+});
+
+// CREATE MARKET ITEM 
 router.post("/createItem", validate("createItem"), async (req, res) => {
   try {
     let errors = validationResult(req);
@@ -75,23 +126,15 @@ router.post("/createItem", validate("createItem"), async (req, res) => {
       return;
     }
 
-    let { email, auctionPrice, uri } = req.body;
+    let { email, auctionPrice, tokenId } = req.body;
 
-    let data = await nft.createMarketItem(email, uri, auctionPrice);
-
-    console.log("DATA", data)
-
-    if (data.error) {
-      return res.status(400).send({
-        status: false,
-        message: data.error,
-      });
-    }
+    let data = await nft.createMarketItem(email, tokenId, auctionPrice);
 
     return res.status(data.statusCode).send({
       status: data.status,
       message: data.data,
     });
+
   } catch (error) {
     console.log(":: CREATE_TOKEN :: ERROR :: ", error);
 
@@ -119,17 +162,11 @@ router.post("/marketSale", validate("marketSale"), async (req, res) => {
 
     let data = await nft.createMarketSale(email, tokenId, auctionPrice);
 
-    if (data.error) {
-      return res.status(400).send({
-        status: false,
-        message: data.error
-      });
-    }
-
     return res.status(data.statusCode).send({
       status: data.status,
       message: data.data
     });
+
   } catch (error) {
     console.log(":: CREATE_MARKET_SALE :: ERROR :: ", error);
 
@@ -140,7 +177,215 @@ router.post("/marketSale", validate("marketSale"), async (req, res) => {
   }
 });
 
-// FETCH MARKET ITEMS
+// TOKENS [UNLISTED TOKENS]
+router.get("/fetchTokens", validate("fetchTokens"), async (req, res) => {
+  try {
+
+    let errors = validationResult(req);
+    if (errors.isEmpty() == false) {
+      return res.status(412).send({
+        status: false,
+        message: "Validation Failed",
+        error: errors,
+      });
+      return;
+    }
+
+    let { email } = req.query;
+
+    let tokens = await cache.get(`tokens-${email}`);
+
+    if (tokens) {
+
+      return res.status(200).send({
+        status: true,
+        message: {
+          data: tokens
+        }
+
+      });
+
+    } else {
+
+      tokens = await nft.tokens(email);
+
+      await cache.set(`tokens-${email}`, tokens.data.data);
+
+      return res.status(tokens.statusCode).send({
+        status: tokens.status,
+        message: tokens.data
+      });
+
+    }
+
+  } catch (error) {
+
+    console.log(":: TOKENS :: ERROR ::", error);
+
+    return res.status(500).send({
+      status: false,
+      message: "Internal Server Error",
+    });
+  }
+});
+
+// FETCH MARKET ITEMS ---
+router.get("/marketItemss", validate("marketItems"), async (req, res) => {
+
+  try {
+
+    let errors = validationResult(req);
+    if (errors.isEmpty() == false) {
+      return res.status(412).send({
+        status: false,
+        message: "Validation Failed",
+        error: errors,
+      });
+      return;
+    }
+
+    let { email } = req.query;
+
+    let marketItems = await cache.get(`fetchMarketItems-${email}`);
+
+    if (marketItems) {
+
+      return res.status(200).send({
+        status: true,
+        message: {
+          data: marketItems
+        }
+      });
+
+    } else {
+
+      marketItems = await nft.marketItems(email);
+
+      await cache.set(`fetchMarketItems-${email}`, marketItems.data.data);
+
+      return res.status(marketItems.statusCode).send({
+        status: marketItems.status,
+        message: marketItems.data
+      });
+
+    }
+
+  } catch (error) {
+    console.log(":: MARKET_ITEMS :: ERROR ::", error);
+
+    return res.status(500).send({
+      status: false,
+      message: "Internal Server Error",
+    });
+  }
+
+})
+
+// FETCH OWNED ITEMS ---
+router.get("/ownedItemss", validate("marketItems"), async (req, res) => {
+
+  try {
+
+    let errors = validationResult(req);
+    if (errors.isEmpty() == false) {
+      return res.status(412).send({
+        status: false,
+        message: "Validation Failed",
+        error: errors,
+      });
+      return;
+    }
+
+    let { email } = req.query;
+
+    let ownedItemss = await cache.get(`fetchMyNFTs-${email}`);
+
+    if (ownedItemss) {
+
+      return res.status(200).send({
+        status: true,
+        message: {
+          data: ownedItemss
+        }
+      });
+
+    } else {
+
+      ownedItems = await nft.ownedItems(email);
+
+      await cache.set(`fetchMyNFTs-${email}`, ownedItems.data.data);
+
+      return res.status(ownedItems.statusCode).send({
+        status: ownedItems.status,
+        message: ownedItems.data
+      });
+
+    }
+
+  } catch (error) {
+    console.log(":: OWNED_ITEMS :: ERROR ::", error);
+
+    return res.status(500).send({
+      status: false,
+      message: "Internal Server Error",
+    });
+  }
+
+})
+
+// FETCH CREATED ITEMS ---
+router.get("/createdItemss", validate("marketItems"), async (req, res) => {
+
+  try {
+
+    let errors = validationResult(req);
+    if (errors.isEmpty() == false) {
+      return res.status(412).send({
+        status: false,
+        message: "Validation Failed",
+        error: errors,
+      });
+      return;
+    }
+
+    let { email } = req.query;
+
+    let createdItems = await cache.get(`fetchItemsCreated-${email}`);
+
+    if (createdItems) {
+
+      return res.status(200).send({
+        status: true,
+        message: {
+          data: createdItems
+        }
+      });
+
+    } else {
+
+      createdItems = await nft.createdItems(email);
+
+      await cache.set(`fetchItemsCreated-${email}`, createdItems.data.data);
+
+      return res.status(createdItems.statusCode).send({
+        status: createdItems.status,
+        message: createdItems.data
+      });
+
+    }
+
+  } catch (error) {
+    console.log(":: CREATED_ITEMS :: ERROR ::", error);
+
+    return res.status(500).send({
+      status: false,
+      message: "Internal Server Error",
+    });
+  }
+
+})
+
+// FETCH MARKET ITEMS [LISTED TOKENS]
 router.get("/marketItems", validate("marketItems"), async (req, res) => {
   try {
 
@@ -153,7 +398,7 @@ router.get("/marketItems", validate("marketItems"), async (req, res) => {
       });
       return;
     }
-    
+
     let { email } = req.query;
 
     let marketItems = await cache.get(`fetchMarketItems-${email}`);
@@ -344,6 +589,8 @@ router.get("/metaData", validate("metaData"), async (req, res, next) => {
       });
       return;
     }
+
+    await nft.metadata("https://gateway.ipfs.io/ipfs/bafkreidrxucodcczws27gdhbx7nhn55ipc24d4gtjip635jflcqukfesnu");
 
     let { url } = req.query;
 
