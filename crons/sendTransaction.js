@@ -80,6 +80,7 @@ const initiateTransaction = async () => {
 
 }
 
+// WALLET - BNB
 const sendCoin = async (txn) => {
 
     try {
@@ -120,7 +121,9 @@ const sendCoin = async (txn) => {
 
             let status = "pending";
 
-            await updateTxnStatus(txn._id, txn.from, status, transaction.hash, '', '');
+            let method = "transfer";
+
+            await updateTxnStatus(txn._id, txn.from, status, transaction.hash, '', method);
 
         });
 
@@ -130,13 +133,16 @@ const sendCoin = async (txn) => {
 
         let status = "failed";
 
-        await updateTxnStatus(txn._id, txn.from, status, txn.hash, error.reason, '');
+        let method = "transfer";
+
+        await updateTxnStatus(txn._id, txn.from, status, txn.hash, error.reason, method);
 
         return;
     }
 
 }
 
+// WALLET - BOBE
 const sendToken = async (txn) => {
 
     try {
@@ -171,7 +177,9 @@ const sendToken = async (txn) => {
 
             let status = "pending";
 
-            await updateTxnStatus(txn._id, txn.from, status, transaction.hash, '', '');
+            let method = "transfer";
+
+            await updateTxnStatus(txn._id, txn.from, status, transaction.hash, '', method);
 
         })
 
@@ -181,7 +189,9 @@ const sendToken = async (txn) => {
 
         let status = "failed";
 
-        await updateTxnStatus(txn._id, txn.from, status, txn.hash, error.reason, '');
+        let method = "transfer";
+
+        await updateTxnStatus(txn._id, txn.from, status, txn.hash, error.reason, method);
 
         return;
     }

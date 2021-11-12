@@ -146,6 +146,7 @@ router.post("/send", validate("send"), async (req, res, next) => {
         sourceAmount: amount,
         targetAmount: amount,
         type: "send",
+        method: "transfer",
         currency: crypto.toLowerCase(),
         hash: "",
         status: constants.TXNS.IN_QUEUE,
@@ -263,7 +264,21 @@ router.get(
 
       let sendTransactions = await transactionsModel
         .find(
-          { email: req.query.email, type: "send" },
+          {
+            $and: [
+              {
+                email: req.query.email
+              },
+              {
+                type: "send"
+              },
+              {
+                method: {
+                  $exists: false
+                }
+              }
+            ]
+          },
           {
             source: 1,
             sourceAmount: 1,
@@ -272,6 +287,7 @@ router.get(
             status: 1,
             timestamp: 1,
             to: 1,
+            fee: 1,
             hash: 1,
             _id: 0,
           }
@@ -282,13 +298,61 @@ router.get(
 
       let receiveTransactions = await transactionsModel
         .find(
-          { email: req.query.email, type: "received" },
           {
+            $and: [
+              {
+                email: req.query.email
+              },
+              {
+                type: "received"
+              },
+              {
+                method: {
+                  $exists: false
+                }
+              }
+            ]
+          },          {
             source: 1,
             sourceAmount: 1,
             targetAmount: 1,
             type: 1,
             status: 1,
+            fee: 1,
+            timestamp: 1,
+            from: 1,
+            hash: 1,
+            _id: 0,
+          }
+        )
+        .sort({ timestamp: -1 })
+        .lean()
+        .exec();
+
+        let nftTransactions = await transactionsModel
+        .find(
+          {
+            $and: [
+              {
+                email: req.query.email
+              },
+              {
+                type: "send"
+              },
+              {
+                method: {
+                  $exists: true
+                }
+              }
+            ]
+          },          {
+            source: 1,
+            sourceAmount: 1,
+            targetAmount: 1,
+            type: 1,
+            status: 1,
+            fee: 1,
+            method:1,
             timestamp: 1,
             from: 1,
             hash: 1,
@@ -304,6 +368,7 @@ router.get(
         message: {
           send: sendTransactions,
           receive: receiveTransactions,
+          nft: nftTransactions
         },
       });
     } catch (error) {

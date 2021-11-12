@@ -511,6 +511,7 @@ const nftTransaction = async (txFromDb) => {
                   targetAmount: await ethers.utils.formatEther(event.price),
                   value: await ethers.utils.formatEther(event.price),
                   type: "received",
+                  method: "transfer",
                   currency: "bnb",
                   error: "nil",
                   hash: txn.hash,
@@ -723,6 +724,7 @@ const coinTransaction = async () => {
             targetAmount: await ethers.utils.formatEther(txn.value),
             value: await ethers.utils.formatEther(txn.value),
             type: "received",
+            method: "transfer",
             currency: "bnb",
             error: "nil",
             hash: txn.hash,
@@ -854,6 +856,7 @@ const tokenTransaction = async () => {
                     token_decimal
                   ),
                   type: "received",
+                  method: "transfer",
                   currency: token_symbol.toLowerCase(),
                   error: "nil",
                   hash: txn.hash,
@@ -889,6 +892,7 @@ const tokenTransaction = async () => {
                     token_decimal
                   ),
                   type: "received",
+                  method: "transfer",
                   currency: token_symbol.toLowerCase(),
                   error: "nil",
                   hash: txn.hash,
