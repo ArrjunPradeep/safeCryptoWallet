@@ -5,7 +5,7 @@
 **Step 1:** Download the repository using the command:
 
 ```
- git clone "https://github.com/Arjun-Pradeep/safeCryptoWallet.git"
+ git clone -b wallet_nft "https://github.com/Arjun-Pradeep/safeCryptoWallet.git"
 ```
 
 **Step 2:** Change the current working directory to "safeCryptoWallet" :
@@ -20,14 +20,63 @@
  npm i --save
 ```
 
-**Step 4:** Setup a database in server [MongoDB]:
+**Step 4:** Load environment variables from **.env** file
+
+```
+MNEMONIC=""
+PASSPHRASE=""
+API_KEY=""
+PROVIDER=""
+WEBSOCKET_URL=""
+PRIVATE_KEY=""
+BNB_API_KEY=""
+MARKETPLACE_ADDRESS=""
+NFT_ADDRESS=""
+```
+
+**Step 5:** Install redis :
+
+```
+ sudo apt-get install redis
+
+```
+
+**Step 6:** Install pm2 [daemon process manager] :
+
+```
+    npm install pm2@latest -g
+```
+
+**Step 7:** Compile the smart contracts :
+
+```
+ npx hardhat compile
+```
+
+**Step 8:** Run redis service :
+
+```
+   pm2 start redis-server
+```
+
+**Step 9:** Setup a database in server [MongoDB]:
 
 ###### Create a file - database.js [HOME directory] :
 
 ```
 conn = new Mongo();
-db = conn.getDB("cryptowallet");
 
+dbName = "wallets";
+
+db = conn.getDB(dbName);
+
+db.createUser(
+{
+user: "cryptoInsider",
+pwd: "VB<z6LXP.[f/+c3+",
+roles: [ {role:"readWrite", db:dbName} ]
+}
+);
 
 // ACCOUNTS
 printjson(
@@ -54,6 +103,11 @@ printjson(
  db.createCollection("settings")
 )
 
+// NFTS
+printjson(
+ db.createCollection("nfts")
+)
+
 // UNIQUE
 db.accounts.createIndex({"email":1},{ unique: true } );
 
@@ -67,6 +121,19 @@ db.accounts.insert({
   upsert: true
 },
 { unique: true })
+)
+
+// UNIQUE
+db.settings.createIndex({marketplace_address:1},{ unique: true } );
+
+// SETTINGS
+printjson(
+db.settings.insert({
+  marketplace_address:"0x487e5a79E03545279Cb662115a4Be91D1136cA75",
+  nft_address:"0x0920adAAd74e243Bc4AD4A878A7Ded9b0AF91187"
+},{
+  upsert: true
+})
 )
 
 // UNIQUE
@@ -104,8 +171,6 @@ db.getCollectionNames()
    load('database.js')
 ```
 
-###### Create a user administrator in MongoDB
-
 ###### Ensure mongodb is running
 
 **Step 5:** Update the database credentials in '/safeCryptoWallet/config/config.js':
@@ -118,22 +183,6 @@ db.getCollectionNames()
         password: "DB_PASSWORD",
         dbName: "DB_NAME"
     }
-```
-
-**Step 6:** Install pm2 [daemon process manager] :
-
-```
-    npm install pm2@latest -g
-```
-
-**Step 7:** Load environment variables from **.env** file
-
-```
-MNEMONIC=""
-PASSPHRASE=""
-API_KEY=""
-PROVIDER=""
-WEBSOCKET_URL=""
 ```
 
 **Step 8:** Execute the crons :
