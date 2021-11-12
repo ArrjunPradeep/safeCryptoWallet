@@ -273,9 +273,7 @@ router.get(
                 type: "send"
               },
               {
-                method: {
-                  $exists: false
-                }
+                method: "transfer"
               }
             ]
           },
@@ -288,6 +286,7 @@ router.get(
             timestamp: 1,
             to: 1,
             fee: 1,
+            method: 1,
             hash: 1,
             _id: 0,
           }
@@ -307,9 +306,7 @@ router.get(
                 type: "received"
               },
               {
-                method: {
-                  $exists: false
-                }
+                method: "transfer"
               }
             ]
           },          {
@@ -319,6 +316,7 @@ router.get(
             type: 1,
             status: 1,
             fee: 1,
+            method:1,
             timestamp: 1,
             from: 1,
             hash: 1,
