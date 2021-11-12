@@ -72,8 +72,8 @@ const uploadFileToIPFS = async (file, name, description) => {
     return {
       uploadedImageUrl,
       metaDataUrl,
-      metaDataHashCID: metadataRes?.path,
-      imageHashCID: url?.path,
+      // metaDataHashCID: metadataRes?.path,
+      // imageHashCID: url?.path,
     };
   } catch (e) {
     console.log(":: ERROR UPLOADING TO IPFS ::", e);
@@ -481,48 +481,7 @@ const createMarketSale = async (email, tokenId, price) => {
   }
 };
 
-// CREATE MARKET SALE - BUY NFT
-const createMarketSales = async (email) => {
-  try {
-    let promises = await Promise.all([
-      initializeWeb3(),
-      initializeMarketContract(await initializeSigner(email)),
-      accountsModel.findOne({ email: email }).lean().exec(),
-      initializeTokenContract(await initializeSigner(email))
-    ]);
-
-  } catch (error) {
-
-    console.log("ERROR::", error)
-
-    let errorCode = await reason(error.transactionHash);
-
-    if (errorCode) {
-      console.log("errorCode::", errorCode);
-      return {
-        error: errorCode
-      }
-    } else {
-      if (error.code) {
-        console.log("errorCode::", error.reason);
-        return { error: error.reason };
-      }
-    }
-
-    if (error.code) {
-      return { error: error.reason };
-    }
-
-    let err = JSON.parse(error.error.body).error.message;
-    err = err.substring(err.indexOf("'") + 1, err.lastIndexOf("'"));
-
-    console.log(":: CREATE_MARKET_SALE :: ERROR :: ", err);
-
-    return { error: err };
-  }
-};
-
-// RETRIEVE ALL MARKET ITEMS - EXCEPT OWN NFT ITEMS CREATED
+// RETRIEVE ALL MARKET ITEMS - EXCEPT OWN NFT ITEMS CREATED [FROM MAINNET]
 const fetchMarketItems = async (email) => {
   try {
     await Promise.all([
@@ -579,7 +538,7 @@ const fetchMarketItems = async (email) => {
   }
 };
 
-// RETRIEVE MY NFTs
+// RETRIEVE MY NFTs [FROM MAINNET]
 const fetchMyNFTs = async (email) => {
   try {
     await Promise.all([
@@ -628,7 +587,7 @@ const fetchMyNFTs = async (email) => {
   }
 };
 
-// RETRIEVE ITEMS CREATED BY THEMSELVES
+// RETRIEVE ITEMS CREATED BY THEMSELVES [FROM MAINNET]
 const fetchItemsCreated = async (email) => {
   try {
     await Promise.all([

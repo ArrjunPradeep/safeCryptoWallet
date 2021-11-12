@@ -229,7 +229,7 @@ router.get("/fetchTokens", validate("fetchTokens"), async (req, res) => {
   }
 });
 
-// FETCH MARKET ITEMS ---
+// FETCH MARKET ITEMS
 router.get("/marketItemss", validate("marketItems"), async (req, res) => {
 
   try {
@@ -281,8 +281,8 @@ router.get("/marketItemss", validate("marketItems"), async (req, res) => {
 
 })
 
-// FETCH OWNED ITEMS ---
-router.get("/ownedItemss", validate("marketItems"), async (req, res) => {
+// FETCH OWNED ITEMS
+router.get("/ownedItemss", validate("ownedItems"), async (req, res) => {
 
   try {
 
@@ -333,8 +333,8 @@ router.get("/ownedItemss", validate("marketItems"), async (req, res) => {
 
 })
 
-// FETCH CREATED ITEMS ---
-router.get("/createdItemss", validate("marketItems"), async (req, res) => {
+// FETCH CREATED ITEMS
+router.get("/createdItemss", validate("createdItems"), async (req, res) => {
 
   try {
 
@@ -385,7 +385,7 @@ router.get("/createdItemss", validate("marketItems"), async (req, res) => {
 
 })
 
-// FETCH MARKET ITEMS [LISTED TOKENS]
+// FETCH MARKET ITEMS [LISTED TOKENS] [FROM MAINNET]
 router.get("/marketItems", validate("marketItems"), async (req, res) => {
   try {
 
@@ -438,7 +438,7 @@ router.get("/marketItems", validate("marketItems"), async (req, res) => {
   }
 });
 
-// FETCH MY NFTs
+// FETCH MY NFTs [FROM MAINNET]
 router.get("/ownedItems", validate("ownedItems"), async (req, res) => {
   try {
 
@@ -491,7 +491,7 @@ router.get("/ownedItems", validate("ownedItems"), async (req, res) => {
   }
 });
 
-// FETCH ITEMS CREATED BY THEMSELVES
+// FETCH ITEMS CREATED BY THEMSELVES [FROM MAINNET]
 router.get("/createdItems", validate("createdItems"), async (req, res) => {
   try {
 
@@ -565,7 +565,9 @@ router.post("/uploadFile", validate("uploadFile"), async (req, res, next) => {
 
     return res.status(200).send({
       status: true,
-      message: data,
+      message: {
+        data: data
+      },
     });
   } catch (error) {
     console.log(":: UPLOAD_FILE :: ERROR ::", error);
