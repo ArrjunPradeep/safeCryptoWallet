@@ -52,13 +52,13 @@ const uploadFileToIPFS = async (file, name, description) => {
     console.log("URL::", url);
 
     // URL (1) https://gateway.ipfs.io/ipfs/ OR (2) https://ipfs.infura.io/ipfs/
-    const uploadedImageUrl = `https://gateway.ipfs.io/ipfs/${url?.path}`;
+    const imageUrl = `https://gateway.ipfs.io/ipfs/${url?.path}`;
 
     //2 ADD Metadata to IPFS
     const metadata = {
       name: name,
       description: description,
-      image: uploadedImageUrl,
+      image: imageUrl,
     };
 
     const metadataRes = await client.add(JSON.stringify(metadata), {
@@ -70,7 +70,7 @@ const uploadFileToIPFS = async (file, name, description) => {
 
     //3 return image & metadata URLs and also the CID for each
     return {
-      uploadedImageUrl,
+      imageUrl,
       metaDataUrl,
       // metaDataHashCID: metadataRes?.path,
       // imageHashCID: url?.path,
