@@ -1,4 +1,4 @@
-# Binance Crypto Wallet
+# Binance Crypto Wallet + NFT
 
 ## Setting Up :
 
@@ -53,7 +53,7 @@ NFT_ADDRESS=""
  npx hardhat compile
 ```
 
-**Step 8:** Run redis service :
+**Step 8:** Run redis service [/home Folder] :
 
 ```
    pm2 start redis-server
@@ -185,14 +185,14 @@ db.getCollectionNames()
     }
 ```
 
-**Step 8:** Execute the crons :
+**Step 6:** Execute the crons :
 
 ```
 pm2 start crons/startSendCrypto.js --name sendCron
 pm2 start crons/receiveTransaction.js --name receiveCron
 ```
 
-**Step 9:** Start the Application :
+**Step 7:** Start the Application :
 
 ```
  pm2 start bin/www --name wallet
@@ -206,9 +206,7 @@ pm2 start crons/receiveTransaction.js --name receiveCron
 
 **Create wallet account for a user [/createWallet] [POST]:**
 
-   <p align="left">
-<a href="https://ibb.co/ZgYbRTh"><img src="https://i.ibb.co/fNnTV0C/create-Wallet.png" alt="create-Wallet" border="0"></a></p>
-
+![CREATE WALLET](https://i.ibb.co/fNnTV0C/create-Wallet.pngg "CREATE WALLET")
 ```
 Body Parameters :
 
@@ -220,10 +218,7 @@ Body Parameters :
 
 **Retrieve account details of a user [/user] [GET]:**
 
-   <p align="left">
-<a href="https://ibb.co/gF3M837"><img src="https://i.ibb.co/dJr0vrc/user.png" alt="user" border="0"></a>
-</p>
-
+![USER](https://i.ibb.co/dJr0vrc/user.png "USER")
 ```
 Query Parameters :
 
@@ -233,10 +228,7 @@ Query Parameters :
 
 **Retrieve transaction history w.r.t user [/transactionHistory] [GET]:**
 
-   <p align="left">
-<a href="https://ibb.co/X2bGhsQ"><img src="https://i.ibb.co/znrtyRM/transaction.png" alt="transaction" border="0"></a>
-</p>
-
+![TRANSACTION HISTORY](https://i.ibb.co/znrtyRM/transaction.png "TRANSACTION HISTORY")
 ```
 Query Parameters :
 
@@ -246,9 +238,7 @@ Query Parameters :
 
 **Validate the transaction [/validateTransaction] [POST]:**
 
-   <p align="left">
-<a href="https://ibb.co/N1yykG3"><img src="https://i.ibb.co/LQZZqsP/validate.png" alt="validate" border="0"></a></p>
-
+![VALIDATE](https://i.ibb.co/LQZZqsP/validate.png "VALIDATE")
 ```
 Body Parameters :
 
@@ -261,9 +251,7 @@ Body Parameters :
 
 **Crypto transaction [/send] [POST]:**
 
-   <p align="left">
-<a href="https://ibb.co/X8DFNBd"><img src="https://i.ibb.co/ws7p3Hb/send.png" alt="send" border="0"></a>
-</p>
+![SEND](https://i.ibb.co/ws7p3Hb/send.png "SEND")
 
 ```
 Body Parameters :
