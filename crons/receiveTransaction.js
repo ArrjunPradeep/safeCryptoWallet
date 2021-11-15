@@ -67,7 +67,7 @@ let contracts = [];
 var isTokenrunning = false;
 
 const EXPECTED_PONG_BACK = 15000
-const KEEP_ALIVE_CHECK_INTERVAL = 7500 //7500||6000
+const KEEP_ALIVE_CHECK_INTERVAL = 6000 //7500||6000
 
 const startConnection = async () => {
 
