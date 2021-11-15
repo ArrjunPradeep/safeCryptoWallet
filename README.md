@@ -204,7 +204,9 @@ pm2 start crons/receiveTransaction.js --name receiveCron
 
 **For every API call, Need to set "x-api-key" in the header**
 
-**Create wallet account for a user [/createWallet] [POST]:**
+## ***Wallet :***
+
+***Create wallet account for a user [ /createWallet ] [ POST ]:***
 
 ![CREATE WALLET](/docs/wallet/createWallet.png "CREATE WALLET")
 ```
@@ -216,7 +218,7 @@ Body Parameters :
 
 ```
 
-**Retrieve account details of a user [/user] [GET]:**
+***Retrieve account details of a user [ /user ] [ GET ]:***
 
 ![USER](/docs/wallet/user.png "USER")
 ```
@@ -226,7 +228,7 @@ Query Parameters :
 
 ```
 
-**Retrieve transaction history w.r.t user [/transactionHistory] [GET]:**
+***Retrieve transaction history w.r.t user [ /transactionHistory ] [ GET ]:***
 
 ![TRANSACTION HISTORY](/docs/wallet/transaction.png "TRANSACTION HISTORY")
 ```
@@ -236,7 +238,7 @@ Query Parameters :
 
 ```
 
-**Validate the transaction [/validateTransaction] [POST]:**
+***Validate the transaction [ /validateTransaction ] [ POST ]:***
 
 ![VALIDATE](/docs/wallet/validate.png "VALIDATE")
 ```
@@ -249,9 +251,9 @@ Body Parameters :
 
 ```
 
-**Crypto transaction [/send] [POST]:**
+***Crypto transaction [ /send ] [ POST ]:***
 
-![SEND]/docs/wallet/send.png "SEND")
+![SEND](/docs/wallet/send.png "SEND")
 
 ```
 Body Parameters :
@@ -260,4 +262,99 @@ Body Parameters :
 -> crypto : String // 'BNB' or 'BOBE'
 -> receiver : String
 -> amount : String
+```
+
+## ***NFT :***
+
+***Upload the image file [ /nft/uploadFile ] [ POST ]:***
+
+![UPLOAD FILE](/docs/nft/uploadFile.png "UPLOAD FILE")
+```
+Body Parameters [Form-data] :
+
+-> file : Image File
+-> name : String
+-> description : String
+```
+
+***Create a new NFT [ /nft/createToken ] [ POST ]:***
+
+![CREATE TOKEN](/docs/nft/createToken.png "CREATE TOKEN")
+```
+Body Parameters :
+
+-> email : String
+-> uri : String
+-> name : String
+-> description : String
+-> image : String
+```
+
+***Create a new market item [ /nft/createItem ] [ POST ]:***
+
+![CREATE ITEM](/docs/nft/createItem.png "CREATE ITEM")
+```
+Body Parameters :
+
+-> email : String
+-> uri : String
+-> name : String
+-> description : String
+-> image : String
+```
+
+***Create a market sale [ /nft/marketSale ] [ POST ]:***
+
+![MARKET SALE](/docs/nft/marketSale.png "MARKET SALE")
+```
+Body Parameters :
+
+-> email : String
+-> tokenId : String
+-> auctionPrice : String
+```
+
+***Fetch all the tokens created by the user [ /nft/fetchTokens ] [ GET ]:***
+
+![FETCH TOKENS](/docs/nft/fetchTokens.png "FETCH TOKENS")
+```
+Query Parameters :
+
+-> email : String
+```
+
+***Fetch all the listed market items [ /nft/marketItems ] [ GET ]:***
+
+![MARKET ITEMS](/docs/nft/marketItems.png "MARKET ITEMS")
+```
+Query Parameters :
+
+-> email : String
+```
+
+***Fetch all the owned market items by the user [ /nft/ownedItems ] [ GET ]:***
+
+![OWNED ITEMS](/docs/nft/ownedItems.png "OWNED ITEMS")
+```
+Query Parameters :
+
+-> email : String
+```
+
+***Fetch all the created market items [SOLD & NOT SOLD] by the user [ /nft/createdItems ] [ GET ]:***
+
+![CREATED ITEMS](/docs/nft/createdItems.png "CREATED ITEMS")
+```
+Query Parameters :
+
+-> email : String
+```
+
+***Fetch the metadata [ /nft/metaData ] [ GET ]:***
+
+![METADATA](/docs/nft/metaData.png "METADATA")
+```
+Query Parameters :
+
+-> url : String
 ```
