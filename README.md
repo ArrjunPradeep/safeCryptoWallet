@@ -200,7 +200,7 @@ pm2 start crons/receiveTransaction.js --name receiveCron
 
 ## Endpoints :
 
-**POSTMAN Collections : https://www.getpostman.com/collections/08bb2c99add9ecf65a47**
+***POSTMAN Collections : https://www.getpostman.com/collections/2a30700cdcec9e9e1f37***
 
 **For every API call, Need to set "x-api-key" in the header**
 
