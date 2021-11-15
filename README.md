@@ -206,7 +206,7 @@ pm2 start crons/receiveTransaction.js --name receiveCron
 
 **Create wallet account for a user [/createWallet] [POST]:**
 
-![CREATE WALLET](https://i.ibb.co/fNnTV0C/create-Wallet.pngg "CREATE WALLET")
+![CREATE WALLET](/docs/wallet/createWallet.png "CREATE WALLET")
 ```
 Body Parameters :
 
@@ -218,7 +218,7 @@ Body Parameters :
 
 **Retrieve account details of a user [/user] [GET]:**
 
-![USER](https://i.ibb.co/dJr0vrc/user.png "USER")
+![USER](/docs/wallet/user.png "USER")
 ```
 Query Parameters :
 
@@ -228,7 +228,7 @@ Query Parameters :
 
 **Retrieve transaction history w.r.t user [/transactionHistory] [GET]:**
 
-![TRANSACTION HISTORY](https://i.ibb.co/znrtyRM/transaction.png "TRANSACTION HISTORY")
+![TRANSACTION HISTORY](/docs/wallet/transaction.png "TRANSACTION HISTORY")
 ```
 Query Parameters :
 
@@ -238,7 +238,7 @@ Query Parameters :
 
 **Validate the transaction [/validateTransaction] [POST]:**
 
-![VALIDATE](https://i.ibb.co/LQZZqsP/validate.png "VALIDATE")
+![VALIDATE](/docs/wallet/validate.png "VALIDATE")
 ```
 Body Parameters :
 
@@ -251,7 +251,7 @@ Body Parameters :
 
 **Crypto transaction [/send] [POST]:**
 
-![SEND](https://i.ibb.co/ws7p3Hb/send.png "SEND")
+![SEND]/docs/wallet/send.png "SEND")
 
 ```
 Body Parameters :
