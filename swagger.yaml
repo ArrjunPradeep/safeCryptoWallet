@@ -8,7 +8,7 @@ info:
     url: "https://google.com"
 
 servers:
-  - url: "{protocol}://localhost:3000/"   #  - url: "{protocol}://localhost:3000/api/{version}"
+  - url: "{protocol}://localhost:3000/" #  - url: "{protocol}://localhost:3000/api/{version}"
     description: localhost
     variables:
       version:
@@ -36,15 +36,349 @@ servers:
 
 components:
   securitySchemes:
-    ApiKeyAuth:        # arbitrary name for the security scheme
+    ApiKeyAuth: # arbitrary name for the security scheme
       type: apiKey
-      in: header       # can be "header", "query" or "cookie"
-      name: X-API-KEY  # name of the header, query parameter or cookie
+      in: header # can be "header", "query" or "cookie"
+      name: X-API-KEY # name of the header, query parameter or cookie
 # 2) Apply the API key globally to all operations
 security:
   - ApiKeyAuth: []
 
 paths:
+  /wallet/createWallet: # [req.body]
+    post:
+      tags:
+        - Crypto Wallet
+      summary: create a new crypto wallet for user
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        200:
+          description: true
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                  message:
+                    type: string
+
+          400:
+            description: Bad Request
+          500:
+            description: Internal Server Error
+
+  /wallet/send: # [req.body]
+    post:
+      tags:
+        - Crypto Wallet
+      summary: send cryptocurrency/token to another user
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                crypto:
+                  type: string
+                receiver:
+                  type: string
+                amount:
+                  type: string
+      responses:
+        200:
+          description: true
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                  message:
+                    type: string
+
+          400:
+            description: Bad Request
+          500:
+            description: Internal Server Error
+
+  /wallet/validateTransaction: # [req.body]
+    post:
+      tags:
+        - Crypto Wallet
+      summary: send cryptocurrency/token to another user
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                crypto:
+                  type: string
+                receiver:
+                  type: string
+                amount:
+                  type: string
+      responses:
+        200:
+          description: true
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                  message:
+                    type: string
+
+          400:
+            description: Bad Request
+          500:
+            description: Internal Server Error
+
+  /wallet/transactionHistory: # [req.query]
+    get:
+      tags:
+        - Crypto Wallet
+      summary: returns the transaction history
+      parameters:
+        - name: email # name is optional, can any value
+          in: query
+          required: true
+          default: nft2@gmail.com
+          schema:
+            type: string
+            # enum: [web, mobile]
+        # - name: itemId # name is optional, can any value
+        #   in: query
+        #   required: true
+        #   schema:
+        #     type: string
+        #     enum: [delhi, kannur, jaipur]
+      responses:
+        200:
+          description: true
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                  message:
+                    type: object
+                    properties:
+                      send:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            timestamp:
+                              type: string
+                            from:
+                              type: string
+                            source:
+                              type: string
+                            sourceAmount:
+                              type: string
+                            targetAmount:
+                              type: string
+                            type:
+                              type: string
+                            method:
+                              type: string
+                            hash:
+                              type: string
+                            status:
+                              type: string
+                            fee:
+                              type: number
+                      receive:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            timestamp:
+                              type: string
+                            from:
+                              type: string
+                            source:
+                              type: string
+                            sourceAmount:
+                              type: string
+                            targetAmount:
+                              type: string
+                            type:
+                              type: string
+                            method:
+                              type: string
+                            hash:
+                              type: string
+                            status:
+                              type: string
+                            fee:
+                              type: number
+                      nft:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            timestamp:
+                              type: string
+                            from:
+                              type: string
+                            source:
+                              type: string
+                            sourceAmount:
+                              type: string
+                            targetAmount:
+                              type: string
+                            type:
+                              type: string
+                            method:
+                              type: string
+                            hash:
+                              type: string
+                            status:
+                              type: string
+                            fee:
+                              type: number
+          400:
+            description: Bad Request
+          500:
+            description: Internal Server Error
+
+  /wallet/user: # [req.query]
+    get:
+      tags:
+        - Crypto Wallet
+      summary: returns the wallet details of user
+      parameters:
+        - name: email # name is optional, can any value
+          in: query
+          required: true
+          default: nft2@gmail.com
+          schema:
+            type: string
+            # enum: [web, mobile]
+        # - name: itemId # name is optional, can any value
+        #   in: query
+        #   required: true
+        #   schema:
+        #     type: string
+        #     enum: [delhi, kannur, jaipur]
+      responses:
+        200:
+          description: true
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                  message:
+                    type: object
+                    properties:
+                      bnb:
+                        type: object
+                        properties:
+                          balance:
+                            type: string
+                          address:
+                            type: string
+                          fee:
+                            type: number
+                      bobe:
+                        type: object
+                        properties:
+                          balance:
+                            type: string
+                          address:
+                            type: string
+                          fee:
+                            type: number
+                      email:
+                        type: string
+          400:
+            description: Bad Request
+          500:
+            description: Internal Server Error
+ 
+  /admin/addToken: # [req.body]
+    post:
+      deprecated: true
+      tags:
+        - Admin
+      summary: adds new token
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                symbol:
+                  type: string
+                address:
+                  type: string
+                blockchain:
+                  type: string
+      responses:
+        200:
+          description: true
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                  message:
+                    type: string
+
+          400:
+            description: Bad Request
+          500:
+            description: Internal Server Error
+
   /nft/uploadFile: # [req.files]
     post:
       tags:
@@ -280,7 +614,7 @@ paths:
                             metadata:
                               type: object
                               properties:
-                                name: 
+                                name:
                                   type: string
                                 description:
                                   type: string
@@ -328,7 +662,7 @@ paths:
                             metadata:
                               type: object
                               properties:
-                                name: 
+                                name:
                                   type: string
                                 description:
                                   type: string
@@ -385,7 +719,7 @@ paths:
                             metadata:
                               type: object
                               properties:
-                                name: 
+                                name:
                                   type: string
                                 description:
                                   type: string
@@ -433,7 +767,7 @@ paths:
                             metadata:
                               type: object
                               properties:
-                                name: 
+                                name:
                                   type: string
                                 description:
                                   type: string

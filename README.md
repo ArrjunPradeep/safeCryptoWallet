@@ -206,7 +206,7 @@ pm2 start crons/receiveTransaction.js --name receiveCron
 
 ## ***Wallet :***
 
-***Create wallet account for a user [ /createWallet ] [ POST ]:***
+***Create wallet account for a user [ /wallet/createWallet ] [ POST ]:***
 
 ![CREATE WALLET](/docs/wallet/createWallet.png "CREATE WALLET")
 ```
@@ -218,7 +218,7 @@ Body Parameters :
 
 ```
 
-***Retrieve account details of a user [ /user ] [ GET ]:***
+***Retrieve account details of a user [ /wallet/user ] [ GET ]:***
 
 ![USER](/docs/wallet/user.png "USER")
 ```
@@ -228,7 +228,7 @@ Query Parameters :
 
 ```
 
-***Retrieve transaction history w.r.t user [ /transactionHistory ] [ GET ]:***
+***Retrieve transaction history w.r.t user [ /wallet/transactionHistory ] [ GET ]:***
 
 ![TRANSACTION HISTORY](/docs/wallet/transaction.png "TRANSACTION HISTORY")
 ```
@@ -238,7 +238,7 @@ Query Parameters :
 
 ```
 
-***Validate the transaction [ /validateTransaction ] [ POST ]:***
+***Validate the transaction [ /wallet/validateTransaction ] [ POST ]:***
 
 ![VALIDATE](/docs/wallet/validate.png "VALIDATE")
 ```
@@ -251,7 +251,7 @@ Body Parameters :
 
 ```
 
-***Crypto transaction [ /send ] [ POST ]:***
+***Crypto transaction [ /wallet/send ] [ POST ]:***
 
 ![SEND](/docs/wallet/send.png "SEND")
 
