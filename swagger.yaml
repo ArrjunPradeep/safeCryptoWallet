@@ -1,0 +1,522 @@
+openapi: "3.0.0"
+info:
+  title: Crypto Wallet
+  description: A Complete Crypto Wallet
+  version: 1.0.0
+  contact:
+    email: arjun@google.com
+    url: "https://google.com"
+
+servers:
+  - url: "{protocol}://localhost:3000/"   #  - url: "{protocol}://localhost:3000/api/{version}"
+    description: localhost
+    variables:
+      version:
+        enum:
+          - v1
+          - v2
+        default: v1
+      protocol:
+        enum:
+          - http
+          - https
+        default: http
+  - url: "http://localhost:4000/api/v2"
+    description: localhost
+
+# components:
+#   securitySchemes:
+#     cookieAuth:
+#       type: apiKey
+#       in: cookie
+#       name: token
+#     BearerAuth:
+#       type: http
+#       scheme: bearer
+
+components:
+  securitySchemes:
+    ApiKeyAuth:        # arbitrary name for the security scheme
+      type: apiKey
+      in: header       # can be "header", "query" or "cookie"
+      name: X-API-KEY  # name of the header, query parameter or cookie
+# 2) Apply the API key globally to all operations
+security:
+  - ApiKeyAuth: []
+
+paths:
+  /nft/uploadFile: # [req.files]
+    post:
+      tags:
+        - NFT
+      summary: uploads the image & metadata to IPFS
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                name:
+                  type: string
+                description:
+                  type: string
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                imageUrl:
+                  type: string
+                metadataUrl:
+                  type: string
+      responses:
+        200:
+          description: true
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                  message:
+                    type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          imageUrl:
+                            type: string
+                          metaDataUrl:
+                            type: string
+
+          400:
+            description: Bad Request
+          500:
+            description: Internal Server Error
+
+  /nft/createToken: # [req.body]
+    post:
+      tags:
+        - NFT
+      summary: create a new NFT
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                uri:
+                  type: string
+                name:
+                  type: string
+                description:
+                  type: string
+                image:
+                  type: string
+      responses:
+        200:
+          description: true
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                  message:
+                    type: object
+                    properties:
+                      data:
+                        type: string
+
+          400:
+            description: Bad Request
+          500:
+            description: Internal Server Error
+
+  /nft/createItem: # [req.body]
+    post:
+      tags:
+        - NFT
+      summary: add the token to marketplace
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                uri:
+                  type: string
+                name:
+                  type: string
+                description:
+                  type: string
+                image:
+                  type: string
+      responses:
+        200:
+          description: true
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                  message:
+                    type: object
+                    properties:
+                      data:
+                        type: string
+
+          400:
+            description: Bad Request
+          500:
+            description: Internal Server Error
+
+  /nft/marketSale: # [req.body]
+    post:
+      tags:
+        - NFT
+      summary: sale the market item
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                uri:
+                  type: string
+                name:
+                  type: string
+                description:
+                  type: string
+                image:
+                  type: string
+      responses:
+        200:
+          description: true
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                  message:
+                    type: object
+                    properties:
+                      data:
+                        type: string
+
+          400:
+            description: Bad Request
+          500:
+            description: Internal Server Error
+
+  /nft/fetchTokens: # [req.query]
+    get:
+      tags:
+        - NFT
+      summary: returns the created NFTs
+      parameters:
+        - name: email # name is optional, can any value
+          in: query
+          required: true
+          default: nft2@gmail.com
+          schema:
+            type: string
+      responses:
+        200:
+          description: true
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                  message:
+                    type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            tokenId:
+                              type: string
+                            metadata:
+                              type: object
+                              properties:
+                                name: 
+                                  type: string
+                                description:
+                                  type: string
+                                image:
+                                  type: string
+        412:
+          description: Precondition Failed
+        400:
+          description: Bad Request
+        500:
+          description: Internal Server Error
+
+  /nft/marketItems: # [req.query]
+    get:
+      tags:
+        - NFT
+      summary: returns all the available market items for sale
+      parameters:
+        - name: email # name is optional, can any value
+          in: query
+          required: true
+          default: nft2@gmail.com
+          schema:
+            type: string
+      responses:
+        200:
+          description: true
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                  message:
+                    type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            tokenId:
+                              type: string
+                            metadata:
+                              type: object
+                              properties:
+                                name: 
+                                  type: string
+                                description:
+                                  type: string
+                                image:
+                                  type: string
+                            price:
+                              type: string
+        412:
+          description: Precondition Failed
+        400:
+          description: Bad Request
+        500:
+          description: Internal Server Error
+
+  /nft/ownedItems: # [req.query]
+    get:
+      tags:
+        - NFT
+      summary: returns owned market items
+      parameters:
+        - name: email # name is optional, can any value
+          in: query
+          required: true
+          default: nft2@gmail.com
+          schema:
+            type: string
+            # enum: [web, mobile]
+        # - name: itemId # name is optional, can any value
+        #   in: query
+        #   required: true
+        #   schema:
+        #     type: string
+        #     enum: [delhi, kannur, jaipur]
+      responses:
+        200:
+          description: true
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                  message:
+                    type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            tokenId:
+                              type: string
+                            metadata:
+                              type: object
+                              properties:
+                                name: 
+                                  type: string
+                                description:
+                                  type: string
+                                image:
+                                  type: string
+                            price:
+                              type: string
+          400:
+            description: Bad Request
+          500:
+            description: Internal Server Error
+
+  /nft/createdItems: # [req.query]
+    get:
+      tags:
+        - NFT
+      summary: returns created market items
+      parameters:
+        - name: email # name is optional, can any value
+          in: query
+          required: true
+          default: nft2@gmail.com
+          schema:
+            type: string
+      responses:
+        200:
+          description: true
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                  message:
+                    type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            tokenId:
+                              type: string
+                            metadata:
+                              type: object
+                              properties:
+                                name: 
+                                  type: string
+                                description:
+                                  type: string
+                                image:
+                                  type: string
+                            price:
+                              type: string
+        412:
+          description: Precondition Failed
+        400:
+          description: Bad Request
+        500:
+          description: Internal Server Error
+
+  /nft/metaData: # [req.query]
+    get:
+      tags:
+        - NFT
+      summary: returns the metadata from IPFS
+      parameters:
+        - name: url
+          in: query
+          required: true
+          default: https://gateway.ipfs.io/ipfs/bafkreifa2tks6sogmo6ihkbs65xgos6n2kj3phxsbv24ytlqlykgarvmea
+          schema:
+            type: string
+      responses:
+        200:
+          description: true
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                  message:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                      description:
+                        type: string
+                      image:
+                        type: string
+        412:
+          description: Precondition Failed
+        400:
+          description: Bad Request
+        500:
+          description: Internal Server Error
+
+  /myTokens/{tokenId}: # Handle data in url , req.params.id
+    get:
+      deprecated: true
+      tags:
+        - NFT
+      summary: returns tokens based on request id
+      parameters:
+        - name: tokenId # name is optional, can any value
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: true
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    tokenId:
+                      type: string
+                    itemId:
+                      type: string
+                    seller:
+                      type: string
+                    owner:
+                      type: string
+          400:
+            description: Bad Request
+          500:
+            description: Internal Server Error

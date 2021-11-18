@@ -5,6 +5,9 @@ const logger = require("morgan");
 const mongoose = require("mongoose");
 const config = require("./config/config");
 const cors = require('cors');
+const swaggerUi = require('swagger-ui-express');
+const YAML = require('yamljs');
+const swaggerDocument = YAML.load('./swagger.yaml');
 
 // D A T A B A S E    C O N N E C T I O N  -  M O N G O D B
 mongoose.set('useNewUrlParser', true);
@@ -46,6 +49,7 @@ const nftRouter = require("./routes/nft");
 const app = express();
 
 app.use(cors());
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 app.use(logger("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
