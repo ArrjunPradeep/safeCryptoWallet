@@ -40,9 +40,15 @@ components:
       type: apiKey
       in: header # can be "header", "query" or "cookie"
       name: X-API-KEY # name of the header, query parameter or cookie
+    bearerAuth:            # arbitrary name for the security scheme
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
 # 2) Apply the API key globally to all operations
 security:
   - ApiKeyAuth: []
+  - bearerAuth: []
 
 paths:
   /wallet/createWallet: # [req.body]
@@ -335,7 +341,7 @@ paths:
             description: Bad Request
           500:
             description: Internal Server Error
- 
+
   /admin/addToken: # [req.body]
     post:
       deprecated: true
