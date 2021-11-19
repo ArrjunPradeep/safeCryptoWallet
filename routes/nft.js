@@ -9,14 +9,14 @@ const query = require("express-validator").query;
 const validationResult = require("express-validator").validationResult;
 const cache = require('../lib/server/cache');
 const config = require("../config/config");
+const auth = require("../middleware/auth");
 
 // VALIDATION
 const validate = (routeName) => {
   switch (routeName) {
     case "createToken":
       return [
-        header("x-api-key").exists().equals(config.wallet.apiKey),
-        body("email").exists().isString().notEmpty(),
+        body("email").exists().isString().notEmpty().isEmail(),
         body("uri").exists().isString().notEmpty(),
         body("name").exists().isString().notEmpty(),
         body("description").exists().isString().notEmpty(),
@@ -24,21 +24,18 @@ const validate = (routeName) => {
       ];
     case "createItem":
       return [
-        header("x-api-key").exists().equals(config.wallet.apiKey),
-        body("email").exists().isString().notEmpty(),
+        body("email").exists().isString().notEmpty().isEmail(),
         body("auctionPrice").exists().isString().notEmpty(),
         body("tokenId").exists().isString().notEmpty(),
       ];
     case "marketSale":
       return [
-        header("x-api-key").exists().equals(config.wallet.apiKey),
-        body("email").exists().isString().notEmpty(),
+        body("email").exists().isString().notEmpty().isEmail(),
         body("auctionPrice").exists().isString().notEmpty(),
         body("tokenId").exists().isString().notEmpty(),
       ];
     case "uploadFile":
       return [
-        header("x-api-key").exists().equals(config.wallet.apiKey),
         body("file")
           .custom((value, { req }) => {
             if (!req.files) throw new Error("File is Required");
@@ -49,35 +46,131 @@ const validate = (routeName) => {
       ];
     case "metaData":
       return [
-        header("x-api-key").exists().equals(config.wallet.apiKey),
         query("url").exists().isString().notEmpty().isURL(),
       ];
     case "marketItems":
       return [
-        header("x-api-key").exists().equals(config.wallet.apiKey),
-        query("email").exists().notEmpty(),
+        query("email").exists().notEmpty().isEmail(),
       ];
     case "ownedItems":
       return [
-        header("x-api-key").exists().equals(config.wallet.apiKey),
-        query("email").exists().notEmpty(),
+        query("email").exists().notEmpty().isEmail(),
       ];
     case "createdItems":
       return [
-        header("x-api-key").exists().equals(config.wallet.apiKey),
-        query("email").exists().notEmpty(),
+        query("email").exists().notEmpty().isEmail(),
       ];
 
     case "fetchTokens":
       return [
-        header("x-api-key").exists().equals(config.wallet.apiKey),
-        query("email").exists().notEmpty(),
+        query("email").exists().notEmpty().isEmail(),
       ];
   }
 };
 
-// MIDDLEWARES
+// MIDDLEWARES == ----FILE_UPLOAD----API_KEY_AUTH----
 router.use(fileUpload());
+router.use(auth.apiKeyAuth);
+
+// UPLOAD IMAGE AND ITS METADATA
+router.post("/uploadFile", validate("uploadFile"), async (req, res, next) => {
+  try {
+    let errors = validationResult(req);
+    if (errors.isEmpty() == false) {
+      return res.status(412).send({
+        status: false,
+        message: "Validation Failed",
+        error: errors,
+      });
+      return;
+    }
+
+    let file = req.files.file;
+
+    let { name, description } = req.body;
+
+    let data = await nft.uploadFileToIPFS(file.data, name, description);
+
+    return res.status(200).send({
+      status: true,
+      message: {
+        data: data
+      },
+    });
+  } catch (error) {
+    console.log(":: UPLOAD_FILE :: ERROR ::", error);
+
+    return res.status(500).send({
+      status: false,
+      message: "Internal Server Error",
+    });
+  }
+});
+
+// GET IPFS JSON METADATA
+router.get("/metaData", async (req, res, next) => {
+  try {
+    let errors = validationResult(req);
+    if (errors.isEmpty() == false) {
+      return res.status(412).send({
+        status: false,
+        message: "Validation Failed",
+        error: errors,
+      });
+      return;
+    }
+
+    await nft.metadata("https://gateway.ipfs.io/ipfs/bafkreidrxucodcczws27gdhbx7nhn55ipc24d4gtjip635jflcqukfesnu");
+
+    let { url } = req.query;
+
+    const config = {
+      method: "GET",
+      url: url
+    };
+
+    // const metaData = await cache.getOrSetCache(url, async() => {
+
+    //   const { data } = await await axios(config);
+
+    //   return data;
+
+    // })
+
+    // const response = await axios(config);
+    //   return res.status(200).send({
+    //     status: true,
+    //     message: metaData
+    //   });
+
+    let metaData = await cache.get(url);
+    if (metaData) {
+      return res.status(200).send({
+        status: true,
+        message: metaData
+      });
+    } else {
+      const response = await axios(config);
+      await cache.set(url, response.data);
+      return res.status(200).send({
+        status: true,
+        message: response.data
+      });
+    }
+
+
+  } catch (error) {
+    console.log(":: METADATA :: ERROR ::", error);
+
+    return res.status(500).send({
+      status: false,
+      message: "Internal Server Error",
+    });
+  }
+});
+
+// MIDDLEWARES == ----JWT_AUTH----API_KEY_AUTH----
+router.use(auth.auth);
 
 // CREATE NFT
 router.post("/createToken", validate("createToken"), async (req, res) => {
@@ -536,103 +629,6 @@ router.get("/createdItemss", validate("createdItems"), async (req, res) => {
 
   } catch (error) {
     console.log(":: CREATED_ITEMS :: ERROR ::", error);
-
-    return res.status(500).send({
-      status: false,
-      message: "Internal Server Error",
-    });
-  }
-});
-
-// UPLOAD IMAGE AND ITS METADATA
-router.post("/uploadFile", validate("uploadFile"), async (req, res, next) => {
-  try {
-    let errors = validationResult(req);
-    if (errors.isEmpty() == false) {
-      return res.status(412).send({
-        status: false,
-        message: "Validation Failed",
-        error: errors,
-      });
-      return;
-    }
-
-    let file = req.files.file;
-
-    let { name, description } = req.body;
-
-    let data = await nft.uploadFileToIPFS(file.data, name, description);
-
-    return res.status(200).send({
-      status: true,
-      message: {
-        data: data
-      },
-    });
-  } catch (error) {
-    console.log(":: UPLOAD_FILE :: ERROR ::", error);
-
-    return res.status(500).send({
-      status: false,
-      message: "Internal Server Error",
-    });
-  }
-});
-
-// GET IPFS JSON METADATA
-router.get("/metaData", validate("metaData"), async (req, res, next) => {
-  try {
-    let errors = validationResult(req);
-    if (errors.isEmpty() == false) {
-      return res.status(412).send({
-        status: false,
-        message: "Validation Failed",
-        error: errors,
-      });
-      return;
-    }
-
-    await nft.metadata("https://gateway.ipfs.io/ipfs/bafkreidrxucodcczws27gdhbx7nhn55ipc24d4gtjip635jflcqukfesnu");
-
-    let { url } = req.query;
-
-    const config = {
-      method: "GET",
-      url: url
-    };
-
-    // const metaData = await cache.getOrSetCache(url, async() => {
-
-    //   const { data } = await await axios(config);
-
-    //   return data;
-
-    // })
-
-    // const response = await axios(config);
-    //   return res.status(200).send({
-    //     status: true,
-    //     message: metaData
-    //   });
-
-    let metaData = await cache.get(url);
-    if (metaData) {
-      return res.status(200).send({
-        status: true,
-        message: metaData
-      });
-    } else {
-      const response = await axios(config);
-      await cache.set(url, response.data);
-      return res.status(200).send({
-        status: true,
-        message: response.data
-      });
-    }
-
-
-  } catch (error) {
-    console.log(":: METADATA :: ERROR ::", error);
 
     return res.status(500).send({
       status: false,

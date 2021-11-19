@@ -14,17 +14,16 @@ const body = require("express-validator").body;
 const header = require("express-validator").header;
 const query = require("express-validator").query;
 const validationResult = require("express-validator").validationResult;
+const auth = require("../middleware/auth");
 
 const validate = (routeName) => {
   switch (routeName) {
     case "createWallet":
       return [
-        header("x-api-key").exists().equals(config.wallet.apiKey),
         body("email").exists().isString().notEmpty().isEmail(),
       ];
     case "send":
       return [
-        header("x-api-key").exists().equals(config.wallet.apiKey),
         body("email").exists().isString().notEmpty().isEmail(),
         body("crypto").exists().isString().notEmpty(),
         body("receiver").exists().isString().notEmpty(),
@@ -32,7 +31,6 @@ const validate = (routeName) => {
       ];
     case "validateTransaction":
       return [
-        header("x-api-key").exists().equals(config.wallet.apiKey),
         body("email").exists().isString().notEmpty().isEmail(),
         body("crypto").exists().isString().notEmpty(),
         body("receiver").exists().isString().notEmpty(),
@@ -40,19 +38,17 @@ const validate = (routeName) => {
       ];
     case "transactionHistory":
       return [
-        header("x-api-key").exists().equals(config.wallet.apiKey),
         query("email").exists().isString().notEmpty().isEmail(),
       ];
     case "user":
       return [
-        header("x-api-key").exists().equals(config.wallet.apiKey),
         query("email").exists().isString().notEmpty().isEmail(),
       ];
   }
 };
 
-// MIDDLEWARE API-KEY AUTHENTICATION
-// router.use(jwt_lib.router);
+// MIDDLEWARES == ----JWT_AUTH----API_KEY_AUTH----
+router.use(auth.apiKeyAuth);
 
 // CREATE NEW WALLETS - BNB & TOKENS
 router.post(
@@ -98,6 +94,64 @@ router.post(
     }
   }
 );
+
+// LOGIN
+router.post("/login", async (req, res, next) => {
+
+  try {
+
+    let { email, password } = req.body;
+
+    let user = await accountsModel.findOne({ email: email }).lean().exec();
+
+    let verifyPassword = await bcrypt_lib.verify(password, user.password);
+
+    if (user) {
+
+      if (!verifyPassword) {
+
+        return res.status(412).send({
+          status: false,
+          message: "Invalid Password"
+        })
+
+      } else {
+
+        let token = await jwt_lib.generateToken(req.body);
+
+        return res.status(200).send({
+          status: true,
+          token: token,
+          message: "success"
+        })
+
+      }
+
+    }
+    else {
+
+      return res.status(412).send({
+        status: false,
+        message: "User Doesn't Exists"
+      })
+
+    }
+
+  } catch (error) {
+
+    console.log("ERROR::LOGIN::", error);
+
+    return res.status(500).send({
+      message: "Internal Server Error",
+      status: false
+    });
+
+  }
+
+})
+
+// MIDDLEWARES == ----JWT_AUTH----API_KEY_AUTH----
+router.use(auth.auth);
 
 // SEND COIN & TOKEN
 router.post("/send", validate("send"), async (req, res, next) => {
@@ -195,13 +249,13 @@ router.post(
 
       let { email, crypto, amount, receiver } = req.body;
 
-      if(await ethereum_lib.isAddressValid(receiver) == false) {
+      if (await ethereum_lib.isAddressValid(receiver) == false) {
 
         return res.status(401).send({
-          status:false,
-          message:"Invalid Address"
+          status: false,
+          message: "Invalid Address"
         })
-  
+
       }
 
       let promises = await Promise.all([
@@ -309,25 +363,25 @@ router.get(
                 method: "transfer"
               }
             ]
-          },          {
-            source: 1,
-            sourceAmount: 1,
-            targetAmount: 1,
-            type: 1,
-            status: 1,
-            fee: 1,
-            method:1,
-            timestamp: 1,
-            from: 1,
-            hash: 1,
-            _id: 0,
-          }
+          }, {
+          source: 1,
+          sourceAmount: 1,
+          targetAmount: 1,
+          type: 1,
+          status: 1,
+          fee: 1,
+          method: 1,
+          timestamp: 1,
+          from: 1,
+          hash: 1,
+          _id: 0,
+        }
         )
         .sort({ timestamp: -1 })
         .lean()
         .exec();
 
-        let nftTransactions = await transactionsModel
+      let nftTransactions = await transactionsModel
         .find(
           {
             $and: [
@@ -343,19 +397,19 @@ router.get(
                 }
               }
             ]
-          },          {
-            source: 1,
-            sourceAmount: 1,
-            targetAmount: 1,
-            type: 1,
-            status: 1,
-            fee: 1,
-            method:1,
-            timestamp: 1,
-            from: 1,
-            hash: 1,
-            _id: 0,
-          }
+          }, {
+          source: 1,
+          sourceAmount: 1,
+          targetAmount: 1,
+          type: 1,
+          status: 1,
+          fee: 1,
+          method: 1,
+          timestamp: 1,
+          from: 1,
+          hash: 1,
+          _id: 0,
+        }
         )
         .sort({ timestamp: -1 })
         .lean()
@@ -391,7 +445,7 @@ router.get("/user", validate("user"), async (req, res, next) => {
       .lean()
       .exec();
 
-    if(user != null) {
+    if (user != null) {
       return res.status(200).send({
         status: true,
         message: user,
