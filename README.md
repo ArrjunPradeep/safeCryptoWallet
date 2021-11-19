@@ -218,7 +218,19 @@ Body Parameters :
 
 ```
 
-***Retrieve account details of a user [ /wallet/user ] [ GET ]:***
+***Login to the wallet account of the user [ /wallet/login ] [ POST ]:***
+
+![CREATE WALLET](/docs/wallet/login.png "CREATE WALLET")
+```
+Body Parameters :
+
+-> email : String
+
+-> password : String
+
+```
+
+***Retrieve account details of a user [ /wallet/user ] [ GET ] [ JWT AUTH ]:***
 
 ![USER](/docs/wallet/user.png "USER")
 ```
@@ -228,7 +240,7 @@ Query Parameters :
 
 ```
 
-***Retrieve transaction history w.r.t user [ /wallet/transactionHistory ] [ GET ]:***
+***Retrieve transaction history w.r.t user [ /wallet/transactionHistory ] [ GET ]  JWT AUTH ]:***
 
 ![TRANSACTION HISTORY](/docs/wallet/transaction.png "TRANSACTION HISTORY")
 ```
@@ -238,7 +250,7 @@ Query Parameters :
 
 ```
 
-***Validate the transaction [ /wallet/validateTransaction ] [ POST ]:***
+***Validate the transaction [ /wallet/validateTransaction ] [ POST ] [ JWT AUTH ]:***
 
 ![VALIDATE](/docs/wallet/validate.png "VALIDATE")
 ```
@@ -251,7 +263,7 @@ Body Parameters :
 
 ```
 
-***Crypto transaction [ /wallet/send ] [ POST ]:***
+***Crypto transaction [ /wallet/send ] [ POST ] [ JWT AUTH ]:***
 
 ![SEND](/docs/wallet/send.png "SEND")
 
@@ -277,7 +289,7 @@ Body Parameters [Form-data] :
 -> description : String
 ```
 
-***Create a new NFT [ /nft/createToken ] [ POST ]:***
+***Create a new NFT [ /nft/createToken ] [ POST ] [ JWT AUTH ]:***
 
 ![CREATE TOKEN](/docs/nft/createToken.png "CREATE TOKEN")
 ```
@@ -290,7 +302,7 @@ Body Parameters :
 -> image : String
 ```
 
-***Create a new market item [ /nft/createItem ] [ POST ]:***
+***Create a new market item [ /nft/createItem ] [ POST ] [ JWT AUTH ]:***
 
 ![CREATE ITEM](/docs/nft/createItem.png "CREATE ITEM")
 ```
@@ -303,7 +315,7 @@ Body Parameters :
 -> image : String
 ```
 
-***Create a market sale [ /nft/marketSale ] [ POST ]:***
+***Create a market sale [ /nft/marketSale ] [ POST ] [ JWT AUTH ]:***
 
 ![MARKET SALE](/docs/nft/marketSale.png "MARKET SALE")
 ```
@@ -314,7 +326,7 @@ Body Parameters :
 -> auctionPrice : String
 ```
 
-***Fetch all the tokens created by the user [ /nft/fetchTokens ] [ GET ]:***
+***Fetch all the tokens created by the user [ /nft/fetchTokens ] [ GET ] [ JWT AUTH ]:***
 
 ![FETCH TOKENS](/docs/nft/fetchTokens.png "FETCH TOKENS")
 ```
@@ -323,7 +335,7 @@ Query Parameters :
 -> email : String
 ```
 
-***Fetch all the listed market items [ /nft/marketItems ] [ GET ]:***
+***Fetch all the listed market items [ /nft/marketItems ] [ GET ] [ JWT AUTH ]:***
 
 ![MARKET ITEMS](/docs/nft/marketItems.png "MARKET ITEMS")
 ```
@@ -332,7 +344,7 @@ Query Parameters :
 -> email : String
 ```
 
-***Fetch all the owned market items by the user [ /nft/ownedItems ] [ GET ]:***
+***Fetch all the owned market items by the user [ /nft/ownedItems ] [ GET ] [ JWT AUTH ]:***
 
 ![OWNED ITEMS](/docs/nft/ownedItems.png "OWNED ITEMS")
 ```
@@ -341,7 +353,7 @@ Query Parameters :
 -> email : String
 ```
 
-***Fetch all the created market items [SOLD & NOT SOLD] by the user [ /nft/createdItems ] [ GET ]:***
+***Fetch all the created market items [SOLD & NOT SOLD] by the user [ /nft/createdItems ] [ GET ] [ JWT AUTH ]:***
 
 ![CREATED ITEMS](/docs/nft/createdItems.png "CREATED ITEMS")
 ```
