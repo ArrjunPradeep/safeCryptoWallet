@@ -376,3 +376,5 @@ Query Parameters :
 ```
 http://localhost:3000/api-docs/
 ```
+![SWAGGER DEMO](/docs/swagger/demo.png "SWAGGER DEMO")
+![SWAGGER AUTH](/docs/swagger/auth.png "SWAGGER AUTH")
